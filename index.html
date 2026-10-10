@@ -1,0 +1,500 @@
+<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui}[hidden]{display:none!important}</style></head><body><title>Stil Water</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;1,300;1,400&family=Karla:wght@400;500&display=swap">
+<style>
+/* Layout: side-view night lake on full-bleed canvas; status chip + timer top, heart-rate readout bottom-left, cards centered */
+:root{
+  --ink:#ece4d6;
+  --ink-dim:rgba(236,228,214,.6);
+  --glass:rgba(8,14,28,.45);
+  --glass-hi:rgba(18,28,50,.65);
+  --line:rgba(236,228,214,.18);
+  --amber:#ffb46a;
+  --calm:#9fd6c2;
+  --night:#040812;
+  --display:'Spectral', 'Iowan Old Style', Georgia, serif;
+  --body:'Karla', 'Segoe UI', system-ui, sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--night);color:var(--ink);font-family:var(--body);-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+
+.hud{position:fixed;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+  padding:calc(env(safe-area-inset-top,0px) + 16px) 16px 0;pointer-events:none}
+.brand{display:flex;flex-direction:column;gap:4px;min-width:0}
+.brand .t{font-family:var(--display);font-style:italic;font-weight:300;font-size:1.5rem;line-height:1}
+.chip{display:inline-flex;align-items:center;gap:7px;font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-dim)}
+.chip i{width:7px;height:7px;border-radius:50%;background:#6b7280;display:inline-block}
+.chip.live i{background:var(--calm);box-shadow:0 0 8px var(--calm)}
+.chip.test i{background:var(--amber)}
+.right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:auto}
+.timer{font-variant-numeric:tabular-nums;font-size:.9rem;letter-spacing:.08em;color:var(--ink-dim);pointer-events:none}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+button{font:500 .84rem/1 var(--body);color:var(--ink);background:var(--glass);border:1px solid var(--line);border-radius:999px;
+  padding:9px 14px;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:background .25s,border-color .25s}
+button:hover{background:var(--glass-hi);border-color:rgba(236,228,214,.34)}
+button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+button.primary{background:rgba(159,214,194,.16);border-color:rgba(159,214,194,.55);font-size:1rem;padding:13px 26px}
+button.primary:hover{background:rgba(159,214,194,.28)}
+button[aria-pressed="true"]{background:rgba(236,228,214,.16);border-color:rgba(236,228,214,.5)}
+
+.readout{position:fixed;left:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);display:flex;align-items:flex-end;gap:14px;pointer-events:none}
+.bpm{display:flex;flex-direction:column;gap:2px}
+.bpm b{font-family:var(--display);font-weight:400;font-size:2.4rem;line-height:1;font-variant-numeric:tabular-nums}
+.bpm span{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim)}
+.delta{font-size:.82rem;color:var(--ink-dim);font-variant-numeric:tabular-nums;padding-bottom:4px}
+.delta.down{color:var(--calm)}
+#spark{width:132px;height:40px;display:block}
+
+.mix{position:fixed;right:16px;top:calc(env(safe-area-inset-top,0px) + 104px);display:grid;grid-template-columns:auto 130px;align-items:center;gap:10px 12px;
+  background:var(--glass-hi);border:1px solid var(--line);border-radius:14px;padding:14px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:5}
+.mix label{font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim)}
+.mix input{width:130px;accent-color:var(--calm)}
+.mix button{grid-column:1 / -1}
+.sim{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);display:flex;flex-direction:column;align-items:flex-end;gap:8px;
+  background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:10px 12px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.sim label{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-dim)}
+.sim input{width:150px;accent-color:var(--amber)}
+.sim .row{align-items:center}
+@media (max-width:460px){.sim input{width:110px}#spark{width:92px}}
+
+.msg{position:fixed;left:16px;right:16px;top:30%;margin:0;text-align:center;pointer-events:none;
+  font-family:var(--display);font-style:italic;font-weight:300;font-size:clamp(1.15rem,3.6vw,1.6rem);text-wrap:balance;
+  text-shadow:0 2px 20px rgba(0,0,0,.6);opacity:0;transform:translateY(6px);transition:opacity 1.2s ease,transform 1.2s ease}
+.msg.on{opacity:.94;transform:none}
+
+.overlay{position:fixed;inset:0;display:grid;place-items:center;padding-inline:16px;overflow:auto;
+  background:radial-gradient(ellipse at 50% 50%,rgba(4,8,18,.25),rgba(4,8,18,.8));transition:opacity 1.2s ease}
+.overlay.gone{opacity:0;pointer-events:none}
+.card{max-width:32rem;width:100%;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;padding-block:24px}
+.card h1,.card h2{margin:0;font-family:var(--display);font-style:italic;font-weight:300;line-height:1;letter-spacing:-.01em;text-wrap:balance}
+.card h1{font-size:clamp(2.6rem,10vw,4.2rem)}
+.card h2{font-size:clamp(2rem,7vw,2.8rem)}
+.card p{margin:0;font-size:1.04rem;line-height:1.6;opacity:.9;max-width:28rem;text-wrap:pretty}
+.label{font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim)}
+.choices{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.note{font-size:.86rem;color:var(--ink-dim);line-height:1.5;max-width:26rem}
+.err{color:#f2b8a0}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%;max-width:24rem}
+.stat{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:4px;background:rgba(8,14,28,.35)}
+.stat b{font-family:var(--display);font-size:1.7rem;font-weight:400;font-variant-numeric:tabular-nums;line-height:1}
+.stat span{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-dim)}
+.stat.hl b{color:var(--calm)}
+.hist{font-size:.84rem;color:var(--ink-dim);font-variant-numeric:tabular-nums;display:flex;flex-direction:column;gap:3px}
+</style>
+
+<canvas id="c" aria-label="Meer bij nacht dat reageert op je hartslag"></canvas>
+
+<header class="hud">
+  <div class="brand"><span class="t">Stil Water</span><span class="chip" id="chip"><i></i><span id="chipText">Niet verbonden</span></span></div>
+  <div class="right">
+    <span class="timer" id="timer"></span>
+    <div class="row">
+      <button id="nums" type="button" aria-pressed="false">Cijfers verbergen</button>
+      <button id="snd" type="button" aria-expanded="false" aria-controls="mix">Geluid</button>
+    </div>
+  </div>
+</header>
+
+<div class="mix" id="mix" hidden>
+  <label for="vMusic">Muziek</label><input id="vMusic" type="range" min="0" max="100" value="80">
+  <label for="vNature">Water en wind</label><input id="vNature" type="range" min="0" max="100" value="70">
+  <label for="vPulse">Hartslagpuls</label><input id="vPulse" type="range" min="0" max="100" value="60">
+  <button id="bin" type="button" aria-pressed="false">Binaural aan</button>
+</div>
+
+<div class="readout" id="readout" hidden>
+  <div class="bpm"><b id="hr">--</b><span>slagen/min</span></div>
+  <div class="delta" id="delta"></div>
+  <canvas id="spark" width="264" height="80"></canvas>
+</div>
+
+<div class="sim" id="sim" hidden>
+  <label for="simHr">Testhartslag <span id="simVal">72</span></label>
+  <input id="simHr" type="range" min="45" max="120" value="72">
+  <div class="row"><button id="simAuto" type="button" aria-pressed="true">Automatisch</button></div>
+</div>
+
+<p id="msg" class="msg"></p>
+
+<div id="intro" class="overlay">
+  <div class="card">
+    <h1>Stil Water</h1>
+    <p>Een meer bij nacht dat meebeweegt met je hartslag. Hoe verder je tot rust komt, hoe meer de mist optrekt, het water stil wordt en de lantaarns aangaan. Je hoeft niets te doen. Gewoon zitten en kijken.</p>
+    <span class="label">Hoe lang</span>
+    <div class="choices" id="durs">
+      <button type="button" data-min="5" aria-pressed="false">5 min</button>
+      <button type="button" data-min="10" aria-pressed="true">10 min</button>
+      <button type="button" data-min="15" aria-pressed="false">15 min</button>
+    </div>
+    <div class="choices">
+      <button id="connect" class="primary" type="button">Verbind hartslagmeter</button>
+      <button id="test" type="button">Testmodus</button>
+    </div>
+    <p class="note" id="connNote">Zet op je Garmin <b>Hartslag uitzenden</b> aan en kies daarna je horloge in de lijst. Op de iPhone werkt dit in de Bluefy-browser.</p>
+    <p class="note">De muziek past zich aan je rust aan. Met <b>Binaural aan</b> krijgt de drone een zweving van 10 naar 6 Hz. Gebruik dan oordopjes en zet Ruimtelijke audio uit.</p>
+  </div>
+</div>
+
+<div id="summary" class="overlay gone">
+  <div class="card">
+    <h2>Het meer is stil</h2>
+    <div class="stats">
+      <div class="stat"><span>Begin</span><b id="sBase">--</b></div>
+      <div class="stat"><span>Einde</span><b id="sEnd">--</b></div>
+      <div class="stat hl"><span>Gedaald</span><b id="sDrop">--</b></div>
+      <div class="stat"><span>Laagste</span><b id="sMin">--</b></div>
+    </div>
+    <p id="sLamps"></p>
+    <div class="hist" id="sHist"></div>
+    <button id="again" class="primary" type="button">Nog een sessie</button>
+  </div>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const cv = $('c'), ctx = cv.getContext('2d');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const TAU = Math.PI * 2;
+let W, H, DPR;
+function resize() { DPR = Math.min(window.devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight; cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); }
+addEventListener('resize', resize); resize();
+const store = { get(k, d) { try { const v = localStorage.getItem('stilwater.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem('stilwater.' + k, JSON.stringify(v)); } catch (e) {} } };
+
+/* ---------- Heart-rate sources ---------- */
+let latestHr = null, lastSampleAt = 0, source = null;
+function onSample(hr) { if (!(hr > 25 && hr < 230)) return; latestHr = hr; lastSampleAt = performance.now(); samples.push({t: sessionClock(), hr}); }
+const samples = [];
+
+async function connectBle() {
+  const note = $('connNote');
+  if (!navigator.bluetooth) { note.innerHTML = '<span class="err">Deze browser kan geen bluetooth gebruiken.</span> Open deze pagina in Chrome op een laptop of Android, of in Bluefy op de iPhone. Je kunt ook de testmodus proberen.'; return; }
+  try {
+    note.textContent = 'Kies je horloge in de lijst…';
+    const dev = await navigator.bluetooth.requestDevice({filters: [{services: ['heart_rate']}]});
+    await attach(dev);
+    source = 'ble'; setChip('live', dev.name || 'Hartslagmeter');
+    begin();
+  } catch (e) {
+    const name = e && e.name;
+    if (name === 'NotFoundError') note.textContent = 'Geen apparaat gekozen. Staat "Hartslag uitzenden" aan op je horloge?';
+    else if (name === 'SecurityError' || name === 'NotAllowedError') note.innerHTML = '<span class="err">Bluetooth is hier geblokkeerd.</span> Deze weergave staat geen bluetooth toe. Open je eigen online versie in Bluefy of Chrome, of probeer de testmodus.';
+    else note.innerHTML = '<span class="err">Verbinden lukte niet.</span> Zet "Hartslag uitzenden" uit en weer aan, en probeer het opnieuw.';
+  }
+}
+async function attach(dev) {
+  const server = await dev.gatt.connect();
+  const ch = await (await server.getPrimaryService('heart_rate')).getCharacteristic('heart_rate_measurement');
+  ch.addEventListener('characteristicvaluechanged', e => {
+    const v = e.target.value, f = v.getUint8(0);
+    onSample(f & 1 ? v.getUint16(1, true) : v.getUint8(1));
+  });
+  await ch.startNotifications();
+  if (!dev._wired) {
+    dev._wired = true;
+    dev.addEventListener('gattserverdisconnected', async () => {
+      setChip('', 'Verbinding kwijt, opnieuw verbinden…');
+      for (let i = 0; i < 6; i++) { await new Promise(r => setTimeout(r, 1500 * (i + 1))); try { await attach(dev); setChip('live', dev.name || 'Hartslagmeter'); return; } catch (e) {} }
+      setChip('', 'Niet verbonden');
+    });
+  }
+}
+// Simulator
+let simTarget = 72, simAuto = true, simHr = 74, simT0 = 0;
+function simTick() {
+  if (source !== 'sim') return;
+  if (simAuto) { const m = (performance.now() - simT0) / 60000; simTarget = 74 - Math.min(13, m * 2.2) + Math.sin(m * 2.1) * 1.5; $('simHr').value = Math.round(simTarget); $('simVal').textContent = Math.round(simTarget); }
+  simHr += (simTarget - simHr) * .18 + (Math.random() - .5) * 1.6;
+  onSample(Math.round(simHr));
+}
+setInterval(simTick, 1000);
+function startSim() { source = 'sim'; simT0 = performance.now(); simHr = 74; setChip('test', 'Testmodus'); $('sim').hidden = false; begin(); }
+$('simHr').addEventListener('input', e => { simAuto = false; $('simAuto').setAttribute('aria-pressed', 'false'); simTarget = +e.target.value; $('simVal').textContent = e.target.value; });
+$('simAuto').addEventListener('click', e => { simAuto = !simAuto; e.currentTarget.setAttribute('aria-pressed', String(simAuto)); if (simAuto) simT0 = performance.now() - 60000 * Math.max(0, (74 - simTarget) / 2.2); });
+function setChip(kind, text) { $('chip').className = 'chip ' + kind; $('chipText').textContent = text; }
+
+/* ---------- Session ---------- */
+let state = 'intro', durMin = store.get('dur', 10), t0 = 0, calibEnd = 0, baseline = null, hrS = null, calm = .3, calmVis = .3, points = 0;
+const LAMPS = 7; let litCount = 0, tenseSince = null, lastNudge = -999;
+const CALIB = 60;
+const sessionClock = () => state === 'intro' ? 0 : (performance.now() - t0) / 1000;
+document.querySelectorAll('#durs button').forEach(b => { b.setAttribute('aria-pressed', String(+b.dataset.min === durMin)); b.addEventListener('click', () => { durMin = +b.dataset.min; store.set('dur', durMin); document.querySelectorAll('#durs button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); }); });
+
+function begin() {
+  $('intro').classList.add('gone'); $('readout').hidden = false;
+  state = 'calib'; t0 = performance.now(); samples.length = 0; baseline = null; hrS = null; points = 0; litCount = 0; lamps.forEach(l => { l.lit = false; l.t = 0; });
+  try { Snd.start(); setSnd(true); } catch (e) { setSnd(false); }
+  try { navigator.wakeLock && navigator.wakeLock.request('screen').catch(() => {}); } catch (e) {}
+  msg('Ga gemakkelijk zitten. Ik meet eerst een minuut hoe je nu bent.', 6000);
+}
+function finish() {
+  state = 'done';
+  const sess = samples.filter(s => s.t > CALIB);
+  const last = sess.filter(s => s.t > sessionClock() - 60);
+  const end = last.length ? last.reduce((a, s) => a + s.hr, 0) / last.length : hrS;
+  let mn = Infinity; for (let i = 0; i < sess.length; i++) { const w = sess.slice(Math.max(0, i - 9), i + 1); mn = Math.min(mn, w.reduce((a, s) => a + s.hr, 0) / w.length); }
+  const drop = baseline - end;
+  $('sBase').textContent = Math.round(baseline); $('sEnd').textContent = Math.round(end);
+  $('sDrop').textContent = (drop >= 0 ? '−' : '+') + Math.abs(drop).toFixed(1).replace('.', ',');
+  $('sMin').textContent = isFinite(mn) ? Math.round(mn) : '--';
+  $('sLamps').textContent = `${litCount} van de ${LAMPS} lantaarns brandden. ` + (drop >= 4 ? 'Je hartslag zakte flink.' : drop >= 1 ? 'Je kwam een stukje tot rust.' : 'Vandaag bleef je hartslag ongeveer gelijk. Ook goed om te weten.');
+  const hist = store.get('hist', []);
+  hist.unshift({d: new Date().toISOString(), b: Math.round(baseline), e: Math.round(end), m: durMin, src: source}); store.set('hist', hist.slice(0, 20));
+  const prev = hist.filter(h => h.src !== 'sim').slice(source === 'sim' ? 0 : 1, source === 'sim' ? 3 : 4);
+  $('sHist').innerHTML = prev.length ? '<span class="label">Vorige sessies</span>' + prev.map(h => { const d = new Date(h.d); return `<span>${d.toLocaleDateString('nl-NL', {day: 'numeric', month: 'short'})} · ${h.b} → ${h.e} (${h.e <= h.b ? '−' : '+'}${Math.abs(h.b - h.e)})</span>`; }).join('') : '';
+  $('summary').classList.remove('gone');
+  Snd.bloom();
+}
+$('again').addEventListener('click', () => { $('summary').classList.add('gone'); $('intro').classList.remove('gone'); $('readout').hidden = true; $('sim').hidden = true; state = 'intro'; source = null; setChip('', 'Niet verbonden'); $('connNote').innerHTML = 'Zet op je Garmin <b>Hartslag uitzenden</b> aan en kies daarna je horloge in de lijst. Op de iPhone werkt dit in de Bluefy-browser.'; });
+$('connect').addEventListener('click', () => { Snd.unlock(); connectBle(); });
+$('test').addEventListener('click', () => { Snd.unlock(); startSim(); });
+
+const LAMP_LINES = ['De eerste lantaarn gaat aan.', 'Het water wordt stiller.', 'De mist trekt op.', 'Halverwege. Je doet niets verkeerd.', 'De sterren komen tevoorschijn.', 'Nog even zo blijven.', 'Alle lantaarns branden.'];
+let msgTimer;
+function msg(t, dur = 3800) { const el = $('msg'); el.classList.remove('on'); clearTimeout(msgTimer); msgTimer = setTimeout(() => { el.textContent = t; el.classList.add('on'); msgTimer = setTimeout(() => el.classList.remove('on'), dur); }, 300); }
+
+function updateSession(dt) {
+  if (latestHr != null) { hrS = hrS == null ? latestHr : hrS + (latestHr - hrS) * (1 - Math.exp(-dt / 6)); }
+  const t = sessionClock();
+  if (state === 'calib') {
+    calm = lerp(calm, .3, dt * .5);
+    if (t >= CALIB) {
+      const cs = samples.filter(s => s.t > 15);
+      if (cs.length >= 8) { baseline = cs.reduce((a, s) => a + s.hr, 0) / cs.length; state = 'session'; msg('Klaar. Laat het meer nu zijn werk doen.'); }
+      else if (t > CALIB + 30 && !samples.length) { msg('Ik ontvang geen hartslag. Staat het uitzenden nog aan?'); t0 += 20000; }
+    }
+  } else if (state === 'session' && hrS != null) {
+    const diff = baseline - hrS;
+    calm = clamp((diff + 4) / 12);
+    const need = durMin * 60 * .5 / LAMPS;
+    points += clamp((diff - 1) / 6, 0, 1.5) * dt;
+    while (litCount < LAMPS && points >= need * (litCount + 1)) { lamps[litCount].lit = true; lamps[litCount].t = 0; litCount++; Snd.chime(litCount); msg(LAMP_LINES[litCount - 1]); }
+    if (diff < -6) { tenseSince ??= t; if (t - tenseSince > 25 && t - lastNudge > 150) { lastNudge = t; msg('Geeft niet. Laat je schouders zakken en kijk naar het water.'); } } else tenseSince = null;
+    if (t >= CALIB + durMin * 60) finish();
+  }
+  calmVis = lerp(calmVis, calm, 1 - Math.exp(-dt / 4));
+}
+
+/* ---------- Scene ---------- */
+const rnd = (a, b) => a + Math.random() * (b - a);
+function ridge(n, oct) { const ph = oct.map(() => rnd(0, TAU)), o = []; for (let i = 0; i < n; i++) { const u = i / (n - 1); let v = 0; oct.forEach(([f, a], k) => v += a * Math.sin(u * f * TAU + ph[k])); o.push(v); } const mn = Math.min(...o), mx = Math.max(...o); return o.map(v => (v - mn) / (mx - mn)); }
+const HILLS = [{pts: ridge(200, [[1.1, 1], [2.9, .4], [7, .12]]), base: .58, amp: .16, col: [16, 22, 44]}, {pts: ridge(200, [[1.8, 1], [4.2, .35], [11, .1]]), base: .585, amp: .09, col: [10, 14, 30]}];
+const STARS = Array.from({length: 260}, () => ({x: Math.random(), y: Math.pow(Math.random(), 1.3) * .55, r: rnd(.3, 1.4), ph: rnd(0, TAU), sp: rnd(.5, 2)}));
+const MIST = Array.from({length: 9}, () => ({u: Math.random() * 1.4 - .2, y: rnd(.5, .7), w: rnd(.35, .7), sp: rnd(.004, .012) * (Math.random() < .5 ? -1 : 1)}));
+const lamps = Array.from({length: LAMPS}, (_, i) => ({u: .12 + i / (LAMPS - 1) * .76 + rnd(-.03, .03), d: rnd(.15, 1), ph: rnd(0, TAU), lit: false, t: 0}));
+const REEDS = Array.from({length: 34}, (_, i) => ({side: i < 17 ? 0 : 1, x: (i < 17 ? rnd(-.02, .2) : rnd(.8, 1.02)), h: rnd(.12, .3), ph: rnd(0, TAU), b: rnd(-.08, .08)}));
+const FLIES = Array.from({length: 30}, () => ({x: Math.random(), y: rnd(.5, .8), ph: rnd(0, TAU), vx: rnd(-.01, .01)}));
+let time = 0;
+
+function glow(x, y, r, col, a, hold = 0) { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(${col},${a})`); if (hold) g.addColorStop(hold, `rgba(${col},${a * .8})`); g.addColorStop(1, `rgba(${col},0)`); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
+
+function draw(dt) {
+  time += dt;
+  const c = calmVis, rough = 1 - c, hor = H * .6;
+  // sky
+  const sky = ctx.createLinearGradient(0, 0, 0, hor);
+  sky.addColorStop(0, `rgb(${lerp(6, 4, c)|0},${lerp(10, 9, c)|0},${lerp(24, 22, c)|0})`);
+  sky.addColorStop(1, `rgb(${lerp(36, 26, c)|0},${lerp(42, 44, c)|0},${lerp(66, 80, c)|0})`);
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, W, hor + 1);
+  for (const s of STARS) { const a = (.08 + .85 * c) * (.55 + .45 * Math.sin(time * s.sp + s.ph)) * (1 - s.y); if (a < .02) continue; ctx.fillStyle = `rgba(228,234,255,${a})`; ctx.beginPath(); ctx.arc(s.x * W, s.y * H, s.r, 0, TAU); ctx.fill(); }
+  // moon
+  const mx = W * .76, my = H * .15, mr = Math.min(W, H) * .045 + 8;
+  glow(mx, my, mr * 8, '200,212,255', .1 + .14 * c); ctx.fillStyle = `rgba(238,240,250,${.75 + .25 * c})`; ctx.beginPath(); ctx.arc(mx, my, mr, 0, TAU); ctx.fill();
+  ctx.fillStyle = 'rgba(150,160,200,.16)'; [[-.3, -.2, .26], [.28, .18, .18], [-.02, .4, .12]].forEach(([dx, dy, r]) => { ctx.beginPath(); ctx.arc(mx + dx * mr, my + dy * mr, r * mr, 0, TAU); ctx.fill(); });
+  // hills
+  for (const L of HILLS) { ctx.fillStyle = `rgb(${L.col})`; ctx.beginPath(); ctx.moveTo(0, hor + 2); L.pts.forEach((v, i) => ctx.lineTo(i / (L.pts.length - 1) * W, H * L.base - v * H * L.amp)); ctx.lineTo(W, hor + 2); ctx.closePath(); ctx.fill(); }
+  // water
+  const wg = ctx.createLinearGradient(0, hor, 0, H);
+  wg.addColorStop(0, `rgb(${lerp(26, 22, c)|0},${lerp(32, 36, c)|0},${lerp(52, 64, c)|0})`); wg.addColorStop(1, 'rgb(5,8,16)');
+  ctx.fillStyle = wg; ctx.fillRect(0, hor, W, H - hor);
+  // hill reflection
+  ctx.save(); ctx.globalAlpha = .35 + .35 * c;
+  for (const L of HILLS) { ctx.fillStyle = `rgb(${L.col})`; ctx.beginPath(); ctx.moveTo(0, hor); L.pts.forEach((v, i) => { const x = i / (L.pts.length - 1) * W; ctx.lineTo(x + Math.sin(time + i) * rough * 3, hor + (hor - (H * L.base - v * H * L.amp)) * .8); }); ctx.lineTo(W, hor); ctx.closePath(); ctx.fill(); }
+  ctx.restore();
+  // moon reflection
+  for (let i = 0; i < 46; i++) {
+    const y = hor + 6 + i * (H - hor) / 46, k = i / 46, spread = (8 + k * 40) * (.35 + rough * 1.6);
+    const ox = Math.sin(time * (1.2 + rough * 2) + i * .9) * spread * .6, len = (10 + k * 30) * (1.2 - rough * .5) * (.6 + .4 * Math.sin(time * 1.7 + i * 2.3));
+    ctx.fillStyle = `rgba(230,232,250,${(.42 - k * .3) * (.5 + .5 * c)})`; ctx.fillRect(mx + ox - len / 2, y, len, 1.4 + k * 1.4);
+  }
+  // waves
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 28; i++) {
+    const k = i / 28, y = hor + 4 + Math.pow(k, 1.6) * (H - hor), amp = (1 + k * 6) * (.15 + rough * 1.2);
+    ctx.strokeStyle = `rgba(150,180,215,${(.05 + .08 * k) * (.4 + rough)})`; ctx.beginPath();
+    for (let x = 0; x <= W; x += 14) { const yy = y + Math.sin(x * (.02 - k * .012) + time * (.6 + rough * 1.4) + i) * amp; x ? ctx.lineTo(x, yy) : ctx.moveTo(x, yy); }
+    ctx.stroke();
+  }
+  // lamps
+  for (const l of lamps) {
+    l.t += dt;
+    const persp = lerp(.45, 1.2, l.d), x = l.u * W + Math.sin(time * .07 + l.ph) * 14, y = hor + 10 + l.d * (H - hor) * .55 + Math.sin(time * (1 + rough) + l.ph) * (1 + rough * 4) * persp;
+    const s = 9 * persp * Math.max(.7, Math.min(W, H) / 700), on = l.lit ? clamp(l.t / 2.5) : 0, fl = 1 + Math.sin(time * 8 + l.ph) * .04;
+    if (on > 0) {
+      for (let k = 0; k < 9; k++) { const ry = y + s * 1.2 + k * s * .7, w = s * (1.6 - k * .12) * (1 + rough * .6); ctx.fillStyle = `rgba(255,170,90,${.32 * on * (1 - k / 9)})`; ctx.fillRect(x - w / 2 + Math.sin(time * 2 + k + l.ph) * rough * 4, ry, w, s * .22); }
+      ctx.globalCompositeOperation = 'lighter'; glow(x, y, s * 9 * fl, '255,150,70', .2 * on); glow(x, y, s * 2.4, '255,200,130', .45 * on); ctx.globalCompositeOperation = 'source-over';
+    }
+    ctx.fillStyle = on > 0 ? `rgb(${lerp(40, 255, on)|0},${lerp(34, 196, on)|0},${lerp(30, 128, on)|0})` : 'rgb(30,30,36)';
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x - s * .65, y - s, s * 1.3, s * 1.7, s * .35) : ctx.rect(x - s * .65, y - s, s * 1.3, s * 1.7); ctx.fill();
+    ctx.fillStyle = 'rgba(20,16,14,.9)'; ctx.fillRect(x - s * .8, y + s * .65, s * 1.6, s * .25); ctx.fillRect(x - s * .5, y - s * 1.1, s, s * .18);
+  }
+  // mist
+  const mistA = .08 + .5 * rough;
+  for (const m of MIST) {
+    if (!reduce) m.u += m.sp * dt * (1 + rough); if (m.u > 1.3) m.u = -.3; if (m.u < -.3) m.u = 1.3;
+    const x = m.u * W, y = m.y * H, rw = m.w * W * .6, rh = H * .05;
+    ctx.save(); ctx.translate(x, y); ctx.scale(1, rh / rw); const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rw);
+    g.addColorStop(0, `rgba(150,160,190,${mistA * .55})`); g.addColorStop(1, 'rgba(150,160,190,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rw, 0, TAU); ctx.fill(); ctx.restore();
+  }
+  // reeds
+  ctx.lineCap = 'round';
+  for (const r of REEDS) {
+    const bx = r.x * W, by = H + 4, h = r.h * H, sway = Math.sin(time * (.8 + rough * 1.6) + r.ph) * (4 + rough * 14) + r.b * h;
+    ctx.strokeStyle = 'rgb(6,10,10)'; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(bx, by); ctx.quadraticCurveTo(bx + sway * .3, by - h * .55, bx + sway, by - h); ctx.stroke();
+    if (r.ph > 4) { ctx.fillStyle = 'rgb(10,12,12)'; ctx.beginPath(); ctx.ellipse(bx + sway, by - h, 2.6, 9, sway * .01, 0, TAU); ctx.fill(); }
+  }
+  // fireflies grow with calm
+  ctx.globalCompositeOperation = 'lighter';
+  FLIES.forEach((f, i) => { if (i / FLIES.length > c * 1.1) return; if (!reduce) { f.x = (f.x + f.vx * dt + 1) % 1; } const x = f.x * W, y = f.y * H + Math.sin(time * .8 + f.ph) * 12, tw = clamp(Math.sin(time * 1.4 + f.ph * 3) * 1.5); if (tw < .05) return; glow(x, y, 14, '200,255,140', .3 * tw); glow(x, y, 2.4, '240,255,200', .9 * tw); });
+  ctx.globalCompositeOperation = 'source-over';
+  // vignette
+  const vg = ctx.createRadialGradient(W / 2, H * .55, Math.min(W, H) * .3, W / 2, H * .55, Math.max(W, H) * .8);
+  vg.addColorStop(0, 'rgba(2,4,10,0)'); vg.addColorStop(1, `rgba(2,4,10,${.6 - .25 * c})`); ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+}
+
+/* ---------- HUD ---------- */
+const sp = $('spark'), sctx = sp.getContext('2d');
+let showNums = !store.get('hideNums', false);
+function applyNums() { $('nums').textContent = showNums ? 'Cijfers verbergen' : 'Cijfers tonen'; $('nums').setAttribute('aria-pressed', String(!showNums)); $('readout').style.visibility = showNums ? 'visible' : 'hidden'; $('timer').style.visibility = showNums ? 'visible' : 'hidden'; }
+$('nums').addEventListener('click', e => { showNums = !showNums; store.set('hideNums', !showNums); applyNums(); e.currentTarget.blur(); }); applyNums();
+let hudT = 0;
+function hud(dt) {
+  hudT += dt; if (hudT < .25) return; hudT = 0;
+  const t = sessionClock();
+  $('hr').textContent = latestHr == null ? '--' : Math.round(hrS ?? latestHr);
+  const d = $('delta');
+  if (state === 'calib') { d.textContent = `meten… ${Math.max(0, Math.ceil(CALIB - t))} s`; d.className = 'delta'; }
+  else if (state === 'session' && hrS != null) { const df = hrS - baseline; d.textContent = `${df <= 0 ? '−' : '+'}${Math.abs(df).toFixed(1).replace('.', ',')} t.o.v. begin`; d.className = 'delta' + (df < -1 ? ' down' : ''); }
+  else d.textContent = '';
+  if (state === 'session') { const left = Math.max(0, CALIB + durMin * 60 - t); $('timer').textContent = `${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, '0')} · ${litCount}/${LAMPS} lantaarns` + (Snd.binOn && Snd.on ? ` · ${Snd.beat.toFixed(1).replace('.', ',')} Hz` : ''); }
+  else if (state === 'calib') $('timer').textContent = 'Rustmeting'; else $('timer').textContent = '';
+  if (performance.now() - lastSampleAt > 8000 && source === 'ble' && state !== 'done') d.textContent = 'geen signaal…';
+  // sparkline: last 3 minutes
+  const w = sp.width, h = sp.height; sctx.clearRect(0, 0, w, h);
+  const recent = samples.filter(s => s.t > t - 180); if (recent.length < 2) return;
+  const vals = recent.map(s => s.hr).concat(baseline ? [baseline] : []), lo = Math.min(...vals) - 2, hi = Math.max(...vals) + 2;
+  const X = s => (s.t - (t - 180)) / 180 * w, Y = v => h - 6 - (v - lo) / (hi - lo) * (h - 12);
+  if (baseline) { sctx.strokeStyle = 'rgba(236,228,214,.25)'; sctx.setLineDash([4, 6]); sctx.lineWidth = 2; sctx.beginPath(); sctx.moveTo(0, Y(baseline)); sctx.lineTo(w, Y(baseline)); sctx.stroke(); sctx.setLineDash([]); }
+  sctx.strokeStyle = '#9fd6c2'; sctx.lineWidth = 3; sctx.lineJoin = 'round'; sctx.beginPath(); recent.forEach((s, i) => i ? sctx.lineTo(X(s), Y(s.hr)) : sctx.moveTo(X(s), Y(s.hr))); sctx.stroke();
+  const l = recent[recent.length - 1]; sctx.fillStyle = '#9fd6c2'; sctx.beginPath(); sctx.arc(X(l), Y(l.hr), 5, 0, TAU); sctx.fill();
+}
+
+/* ---------- Audio: generative ambient (glacial drone, ice grains, distant swells, sub pulse) ---------- */
+const Snd = (() => {
+  let ac, master, musicBus, natureBus, pulseBus, mix = {music: .8, nature: .7, pulse: .6}, rev, lap, lapF, wind, windF, padBus, padF, on = false, binOn = false, beat = 10;
+  let voices = [], chordIdx = 0, nextChord = 0, nextGrain = 0, nextSwell = 0, nextPulse = 0, nextOwl = 0;
+  const D = 73.42, st = s => D * Math.pow(2, s / 12);
+  // D dorian voicings, semitones above D2: cold, open, slowly drifting
+  const CHORDS = [[0, 7, 12, 15, 22], [-4, 3, 10, 14, 19], [-2, 5, 12, 17, 21], [0, 7, 14, 17, 24], [-5, 2, 9, 12, 19]];
+  const SCALE = [0, 2, 3, 5, 7, 9, 10];
+  const nb = (sec, brown) => { const b = ac.createBuffer(1, ac.sampleRate * sec, ac.sampleRate), d = b.getChannelData(0); let l = 0; for (let i = 0; i < d.length; i++) { const w = Math.random() * 2 - 1; if (brown) { l = (l + .02 * w) / 1.02; d[i] = l * 3.4; } else d[i] = w; } return b; };
+  function init() {
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    master = ac.createGain(); master.gain.value = 0; const comp = ac.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 3; master.connect(comp).connect(ac.destination);
+    musicBus = ac.createGain(); natureBus = ac.createGain(); pulseBus = ac.createGain(); [musicBus, natureBus, pulseBus].forEach(b => b.connect(master)); applyMix();
+    rev = ac.createConvolver(); const len = ac.sampleRate * 7, ib = ac.createBuffer(2, len, ac.sampleRate);
+    for (let c = 0; c < 2; c++) { const d = ib.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2) * (i < ac.sampleRate * .03 ? i / (ac.sampleRate * .03) : 1); }
+    rev.buffer = ib; const rg = ac.createGain(); rg.gain.value = .6; rev.connect(rg).connect(musicBus);
+    // field-recording layer: water + wind
+    const s1 = ac.createBufferSource(); s1.buffer = nb(6, true); s1.loop = true; lapF = ac.createBiquadFilter(); lapF.type = 'lowpass'; lapF.frequency.value = 500; lap = ac.createGain(); lap.gain.value = .03; s1.connect(lapF).connect(lap).connect(natureBus); s1.start();
+    const s2 = ac.createBufferSource(); s2.buffer = nb(4, false); s2.loop = true; windF = ac.createBiquadFilter(); windF.type = 'bandpass'; windF.frequency.value = 600; windF.Q.value = .6; wind = ac.createGain(); wind.gain.value = 0; s2.connect(windF).connect(wind).connect(natureBus); s2.start();
+    // drone: each voice = left osc + right osc (right offset by the binaural beat)
+    padF = ac.createBiquadFilter(); padF.type = 'lowpass'; padF.frequency.value = 500; padF.Q.value = .4;
+    padBus = ac.createGain(); padBus.gain.value = .9; padF.connect(padBus); padBus.connect(musicBus); padBus.connect(rev);
+    CHORDS[0].forEach((s, i) => {
+      const f = st(s), L = ac.createOscillator(), R = ac.createOscillator(), m = ac.createChannelMerger(2), g = ac.createGain();
+      L.type = R.type = i < 1 ? 'sine' : 'triangle'; L.frequency.value = f; R.frequency.value = f;
+      const wob = ac.createOscillator(), wg = ac.createGain(); wob.frequency.value = .05 + i * .013; wg.gain.value = 3; wob.connect(wg); wg.connect(L.detune); wg.connect(R.detune); wob.start();
+      L.connect(m, 0, 0); R.connect(m, 0, 1); m.connect(g).connect(padF); g.gain.value = 0;
+      L.start(); R.start(); voices.push({L, R, g, f, lvl: [.07, .07, .06, .05, .04][i]});
+    });
+    const t = ac.currentTime; nextChord = t + 28; nextGrain = t + 2; nextSwell = t + 9; nextPulse = t + 4; nextOwl = t + 60;
+  }
+  function applyMix() { if (!ac) return; const n = ac.currentTime; musicBus.gain.setTargetAtTime(mix.music * 1.25, n, .2); natureBus.gain.setTargetAtTime(mix.nature * 3, n, .2); pulseBus.gain.setTargetAtTime(mix.pulse * 1.6, n, .2); }
+  function setMix(k, v) { mix[k] = v; applyMix(); }
+  function retune(glide) { const n = ac.currentTime; voices.forEach(v => { v.L.frequency.setTargetAtTime(v.f, n, glide); v.R.frequency.setTargetAtTime(v.f + (binOn ? beat : .12), n, glide); }); }
+  let unlockEl = null;
+  function silentWav() { const sr = 8000, n = sr / 2, b = new ArrayBuffer(44 + n * 2), v = new DataView(b), w = (o, t) => [...t].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+    w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+    let bin = ''; new Uint8Array(b).forEach(x => bin += String.fromCharCode(x)); return 'data:audio/wav;base64,' + btoa(bin); }
+  function unlock() {
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+    try { if (!unlockEl) { unlockEl = new Audio(silentWav()); unlockEl.loop = true; unlockEl.setAttribute('playsinline', ''); } unlockEl.play().catch(() => {}); } catch (e) {}
+    try { if (!ac) init(); ac.resume(); } catch (e) {}
+  }
+  function start() { unlock(); on = true; master.gain.cancelScheduledValues(ac.currentTime); master.gain.setTargetAtTime(.9, ac.currentTime, 2); voices.forEach(v => v.g.gain.setTargetAtTime(v.lvl, ac.currentTime, 4)); retune(.5); }
+  function stop() { if (!ac) return; on = false; master.gain.setTargetAtTime(0, ac.currentTime, .3); }
+  function setBin(v) { binOn = v; if (ac) retune(1.5); }
+  function grain(c) {
+    const t = ac.currentTime, deg = SCALE[Math.random() * SCALE.length | 0], oct = 36 + (Math.random() < .4 ? 12 : 0), f = st(deg + oct);
+    const o = ac.createOscillator(), g = ac.createGain(), p = ac.createStereoPanner ? ac.createStereoPanner() : null, vol = .014 + .016 * c;
+    o.frequency.value = f; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .004); g.gain.exponentialRampToValueAtTime(.0001, t + .5 + Math.random() * .8);
+    if (p) { p.pan.value = Math.random() * 1.8 - .9; o.connect(g).connect(p); p.connect(rev); p.connect(musicBus); } else { o.connect(g); g.connect(rev); }
+    o.start(t); o.stop(t + 1.5);
+  }
+  function swell() {
+    const t = ac.currentTime, f = st(SCALE[Math.random() * SCALE.length | 0] + 24), o = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain(), lp = ac.createBiquadFilter();
+    o.type = 'triangle'; o2.type = 'sine'; o.frequency.value = f; o2.frequency.value = f * 2.003; lp.type = 'lowpass'; lp.frequency.value = 1200;
+    const vib = ac.createOscillator(), vg = ac.createGain(); vib.frequency.value = 4.2; vg.gain.value = 4; vib.connect(vg); vg.connect(o.detune); vg.connect(o2.detune);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.035, t + 3.5); g.gain.setValueAtTime(.035, t + 7); g.gain.linearRampToValueAtTime(0, t + 14);
+    o.connect(lp); o2.connect(lp); lp.connect(g); g.connect(rev); g.connect(musicBus);
+    [o, o2, vib].forEach(x => { x.start(t); x.stop(t + 14.2); });
+  }
+  function pulse() {
+    const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+    o.frequency.setValueAtTime(58, t); o.frequency.exponentialRampToValueAtTime(41, t + .5);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.045, t + .03); g.gain.exponentialRampToValueAtTime(.0001, t + .9);
+    o.connect(g).connect(pulseBus); o.start(t); o.stop(t + 1);
+  }
+  function tick(t, c, hr, active) {
+    if (!ac || !on) return; const n = ac.currentTime, r = 1 - c;
+    lap.gain.setTargetAtTime(.022 + .018 * r + .008 * Math.sin(t * .5), n, .8); lapF.frequency.setTargetAtTime(360 + 240 * r + 60 * Math.sin(t * .2), n, 1);
+    wind.gain.setTargetAtTime(.003 + .03 * r * (.7 + .3 * Math.sin(t * .23)), n, 1.2); windF.frequency.setTargetAtTime(500 + 300 * Math.sin(t * .11), n, 1);
+    padF.frequency.setTargetAtTime(700 + 700 * c + 250 * Math.sin(t * .021), n, 3);
+    const nb2 = lerp(10, 6, clamp(c * 1.1)); if (Math.abs(nb2 - beat) > .05) { beat = nb2; retune(2.5); }
+    if (n > nextChord) { chordIdx = (chordIdx + 1) % CHORDS.length; CHORDS[chordIdx].forEach((s, i) => voices[i].f = st(s)); retune(6); nextChord = n + 26 + Math.random() * 14; }
+    if (n > nextGrain) { grain(c); nextGrain = n + lerp(2.2, .35, c) * (.5 + Math.random()); }
+    if (n > nextSwell) { swell(); nextSwell = n + 14 + Math.random() * 16; }
+    if (active && hr) { if (n > nextPulse) { pulse(); nextPulse = n + 60 / Math.max(42, hr - 6); } } else nextPulse = n + 1;
+    if (n > nextOwl && c > .55) { owl(); nextOwl = n + 70 + Math.random() * 60; }
+  }
+  function bell(f, vol, at) { const t = at || ac.currentTime; [[1, 1, 3.5], [2.76, .25, 1.4], [5.4, .08, .7]].forEach(([m, a, d]) => { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f * m; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol * a, t + .006); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g); g.connect(musicBus); g.connect(rev); o.start(t); o.stop(t + d + .05); }); }
+  function chime(i) { if (!on) return; bell(st(36 + [0, 2, 3, 5, 7, 9, 12][(i - 1) % 7]), .05); }
+  function bloom() { if (!on) return; const t = ac.currentTime; [0, 7, 10, 14, 19].forEach((k, j) => bell(st(36 + k), .04, t + j * .22)); }
+  function owl() { const t = ac.currentTime; [[0, 392, .32], [.55, 352, .9]].forEach(([d, f, len]) => { const o = ac.createOscillator(), g = ac.createGain(), lfo = ac.createOscillator(), lg = ac.createGain(); o.frequency.value = f; lfo.frequency.value = 6; lg.gain.value = 6; lfo.connect(lg).connect(o.frequency); g.gain.setValueAtTime(0, t + d); g.gain.linearRampToValueAtTime(.015, t + d + .06); g.gain.setValueAtTime(.015, t + d + len - .1); g.gain.linearRampToValueAtTime(0, t + d + len); o.connect(g); g.connect(natureBus); o.start(t + d); lfo.start(t + d); o.stop(t + d + len + .05); lfo.stop(t + d + len + .05); }); }
+  return {start, stop, unlock, setMix, tick, chime, bloom, setBin, get binOn() { return binOn; }, get beat() { return beat; }, get on() { return on; }, get ac() { return ac; }};
+})();
+function setSnd() {}
+setSnd(true);
+function setBinBtn() { const v = Snd.binOn; $('bin').textContent = v ? 'Binaural uit' : 'Binaural aan'; $('bin').setAttribute('aria-pressed', String(v)); }
+Snd.setBin(store.get('bin', false)); setBinBtn();
+$('bin').addEventListener('click', e => { e.currentTarget.blur(); Snd.setBin(!Snd.binOn); store.set('bin', Snd.binOn); setBinBtn(); if (Snd.binOn && !Snd.on && state !== 'intro') { Snd.start(); setSnd(true); } });
+$('snd').addEventListener('click', e => { const m = $('mix'); m.hidden = !m.hidden; e.currentTarget.setAttribute('aria-expanded', String(!m.hidden)); if (!Snd.on && state !== 'intro') Snd.start(); });
+const MIXK = {vMusic: 'music', vNature: 'nature', vPulse: 'pulse'}, savedMix = store.get('mix', {});
+for (const [id, k] of Object.entries(MIXK)) { const el = $(id); if (savedMix[k] != null) el.value = Math.round(savedMix[k] * 100); Snd.setMix(k, el.value / 100); el.addEventListener('input', () => { Snd.setMix(k, el.value / 100); savedMix[k] = el.value / 100; store.set('mix', savedMix); }); }
+cv.addEventListener('pointerdown', () => { $('mix').hidden = true; $('snd').setAttribute('aria-expanded', 'false'); });
+addEventListener('pointerdown', () => { const ac = Snd.ac; if (Snd.on && ac && ac.state !== 'running') Snd.unlock(); }, true);
+document.addEventListener('visibilitychange', () => { const ac = Snd.ac; if (!ac) return; if (document.hidden) ac.suspend(); else if (Snd.on) ac.resume(); });
+
+let last = performance.now();
+function loop(now) { const dt = Math.min(.05, (now - last) / 1000); last = now; if (state === 'calib' || state === 'session') updateSession(dt); draw(dt); hud(dt); Snd.tick(time, calmVis, hrS, state === 'session' || state === 'calib'); requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+window.__sw = {setState: o => Object.assign(window.__swState = window.__swState || {}, o), force: (c) => { calmVis = calm = c; }};
+})();
+</script>
+</body></html>
