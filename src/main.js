@@ -20,7 +20,7 @@ initBreathBar();
 initHud();
 initControls();
 
-let last = performance.now();
+let last = performance.now(), lastLevel = 0;
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
@@ -41,7 +41,9 @@ function frame(now) {
   const rel = app.state === 'session' && app.baseline != null && app.hrS != null ? app.hrS - app.baseline : 0;
   audio.tick(app.time, app.calmVis, app.hrS, active, rel);
   const step = breath.on ? currentStep(breath) : null;
-  audio.setBreath(breath.level, step ? step[0] : '', breath.on ? breath.vis : 0);
+  const speed = Math.abs(breath.level - lastLevel) / Math.max(dt, 1e-3);
+  lastLevel = breath.level;
+  audio.setBreath(breath.level, step ? step[0] : '', breath.on ? breath.vis : 0, speed);
 
   requestAnimationFrame(frame);
 }

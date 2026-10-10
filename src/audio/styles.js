@@ -16,10 +16,10 @@
 
 export const STYLES = {
   deep: {
-    chords: [[-12, -5, 0, 3, 7], [-14, -7, -2, 3, 5], [-12, -5, 2, 5, 10]],
+    chords: [[0, 7, 12, 15, 19], [-2, 5, 10, 14, 17], [0, 7, 14, 15, 22]],
     scale: [0, 2, 3, 5, 7, 9, 10],
     grain: 0, swell: 0.3, arp: false, tick: false, bed: 0, ocean: true, owl: true, bird: false,
-    bright: 0.55, slow: 1.8, pulseOff: 8, nature: 1, chimeOct: 24,
+    bright: 0.8, slow: 1.8, pulseOff: 8, nature: 1, chimeOct: 24,
   },
   glacial: {
     chords: [[0, 7, 12, 15, 22], [-4, 3, 10, 14, 19], [-2, 5, 12, 17, 21], [0, 7, 14, 17, 24], [-5, 2, 9, 12, 19]],

@@ -81,6 +81,10 @@ stateDiagram-v2
 
 Elke drone-stem bestaat uit twee oscillatoren: één voor links, één voor rechts. De rechter is verstemd met de binaural-frequentie, zodat de zweving in de muziek zelf zit en niet als losse toon klinkt. De galm gebruikt per kanaal een eigen impulsrespons, zodat het binaurale beeld behouden blijft.
 
+Toonhoogtes glijden nooit: bij een akkoordwissel vervaagt elke stem, springt in stilte naar de nieuwe toon en komt weer op, met de stemmen na elkaar zodat het geluid doorloopt. Alleen het rechteroor verschuift langzaam mee met de binaural-frequentie. De hartslag stuurt de klankkleur (filter), niet de toonhoogte; dat voorkomt het "vinger op de plaat"-effect.
+
+Het ademgeluid is roze ruis door een zacht laagdoorlaatfilter, en klinkt alleen terwijl de ademgids beweegt (stil bij vasthouden).
+
 Bussen: `music`, `nature`, `pulse` en `breath`, elk met een eigen schuifje in het geluidspaneel. Alles loopt via een compressor naar de uitgang.
 
 iOS: geluid start alleen na een tik. `audio.unlock()` wordt daarom synchroon in de klik-handler aangeroepen, nog vóór de bluetooth-kiezer. Een stil `<audio>`-element zorgt dat iOS de pagina als mediaweergave behandelt, zodat de stil-schakelaar het geluid niet dempt.

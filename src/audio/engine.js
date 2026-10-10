@@ -31,6 +31,20 @@ function noiseBuffer(ac, seconds, brown) {
   return b;
 }
 
+/** Pink noise (equal energy per octave, Paul Kellet's filter): softer and more natural than white noise. */
+function pinkBuffer(ac, seconds) {
+  const b = ac.createBuffer(1, ac.sampleRate * seconds, ac.sampleRate), d = b.getChannelData(0);
+  let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+  for (let i = 0; i < d.length; i++) {
+    const w = Math.random() * 2 - 1;
+    b0 = 0.99886 * b0 + w * 0.0555179; b1 = 0.99332 * b1 + w * 0.0750759; b2 = 0.969 * b2 + w * 0.153852;
+    b3 = 0.8665 * b3 + w * 0.3104856; b4 = 0.55 * b4 + w * 0.5329522; b5 = -0.7616 * b5 - w * 0.016898;
+    d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
+    b6 = w * 0.115926;
+  }
+  return b;
+}
+
 /** A tiny silent WAV, played through an <audio> element so iOS treats the page as media playback (ignores the mute switch). */
 function silentWav() {
   const sr = 8000, n = sr / 2, b = new ArrayBuffer(44 + n * 2), v = new DataView(b);
@@ -45,7 +59,7 @@ function silentWav() {
 function createEngine() {
   let ac, master, musicBus, natureBus, pulseBus, breathBus, rev;
   let lap, lapF, wind, windF, padF, bed, breathGain, breathFilter;
-  let on = false, binOn = false, beat = 10, beatTarget = 10, lastCents = 0;
+  let on = false, binOn = false, beat = 10, beatTarget = 10;
   const mix = { music: 0.8, nature: 0.7, pulse: 0.6, breath: 0.6 };
   const voices = [];
   let chordIdx = 0, arpI = 0;
@@ -87,7 +101,14 @@ function createEngine() {
     wind = ac.createGain(); wind.gain.value = 0; windF = loop(noiseBuffer(ac, 4, false), 'bandpass', 600, 0.6, wind, natureBus);
     bed = ac.createGain(); bed.gain.value = 0; loop(noiseBuffer(ac, 5, true), 'lowpass', 320, 0, bed, musicBus);
     crackleBuf = noiseBuffer(ac, 0.05, false);
-    breathGain = ac.createGain(); breathGain.gain.value = 0; breathFilter = loop(noiseBuffer(ac, 3, false), 'bandpass', 500, 0.7, breathGain, breathBus);
+    // Breath: pink noise, high-passed against rumble and gently low-passed so it sounds like air, not hiss.
+    breathGain = ac.createGain(); breathGain.gain.value = 0;
+    {
+      const s = ac.createBufferSource(); s.buffer = pinkBuffer(ac, 4); s.loop = true;
+      const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 140;
+      breathFilter = ac.createBiquadFilter(); breathFilter.type = 'lowpass'; breathFilter.frequency.value = 600; breathFilter.Q.value = 0.3;
+      s.connect(hp).connect(breathFilter).connect(breathGain).connect(breathBus); s.start();
+    }
 
     padF = ac.createBiquadFilter(); padF.type = 'lowpass'; padF.frequency.value = 500; padF.Q.value = 0.4;
     const padBus = ac.createGain(); padBus.gain.value = 0.9;
@@ -97,12 +118,12 @@ function createEngine() {
       L.type = R.type = i < 1 ? 'sine' : 'triangle';
       L.frequency.value = f; R.frequency.value = f;
       const wob = ac.createOscillator(), wg = ac.createGain();
-      wob.frequency.value = 0.05 + i * 0.013; wg.gain.value = 3;
+      wob.frequency.value = 0.05 + i * 0.013; wg.gain.value = 1;
       wob.connect(wg); wg.connect(L.detune); wg.connect(R.detune); wob.start();
       L.connect(m, 0, 0); R.connect(m, 0, 1); m.connect(g).connect(padF);
       g.gain.value = 0;
       L.start(); R.start();
-      voices.push({ L, R, g, f, lvl: [0.07, 0.07, 0.06, 0.05, 0.04][i] });
+      voices.push({ L, R, g, f, lvl: [0.07, 0.07, 0.06, 0.05, 0.04][i], pending: null });
     });
     const t = ac.currentTime;
     Object.assign(next, { chord: t + 28, grain: t + 2, swell: t + 9, pulse: t + 4, owl: t + 60, arp: t + 3, tick: t + 2, bird: t + 20 });
@@ -118,12 +139,40 @@ function createEngine() {
     breathBus.gain.setTargetAtTime(mix.breath * 1.5, n, 0.2);
   }
 
-  function retune(glide) {
+  const offset = () => (binOn ? beat : 0.12);
+
+  /** Only the right ear follows the binaural beat; pitches themselves never glide. */
+  function updateBeat(tc) {
     const n = ac.currentTime;
-    voices.forEach((v) => {
-      v.L.frequency.setTargetAtTime(v.f, n, glide);
-      v.R.frequency.setTargetAtTime(v.f + (binOn ? beat : 0.12), n, glide);
+    voices.forEach((v) => { if (!v.pending) v.R.frequency.setTargetAtTime(v.f + offset(), n, tc); });
+  }
+
+  /**
+   * Change chord without pitch glides (which sound like a finger on a record): each voice fades out,
+   * jumps to its new pitch while silent, and fades back in. Voices are staggered so the sound never drops out.
+   */
+  function changeChord(semis, immediate = false) {
+    const n = ac.currentTime;
+    semis.forEach((s, i) => {
+      const v = voices[i], f = st(s);
+      if (immediate) {
+        v.f = f; v.pending = null;
+        v.L.frequency.setValueAtTime(f, n); v.R.frequency.setValueAtTime(f + offset(), n);
+        return;
+      }
+      const out = n + i * 1.6;
+      v.g.gain.setTargetAtTime(0, out, 0.45);
+      v.pending = { f, at: out + 2.2 };
     });
+  }
+
+  function applyPending(n) {
+    for (const v of voices) {
+      if (!v.pending || n < v.pending.at) continue;
+      v.f = v.pending.f; v.pending = null;
+      v.L.frequency.setValueAtTime(v.f, n); v.R.frequency.setValueAtTime(v.f + offset(), n);
+      v.g.gain.setTargetAtTime(on ? v.lvl : 0, n, 1.2);
+    }
   }
 
   function setStyle(name, force = false) {
@@ -132,8 +181,7 @@ function createEngine() {
     S = STYLES[name];
     if (!ac) return;
     chordIdx = 0;
-    S.chords[0].forEach((s, i) => (voices[i].f = st(s)));
-    retune(force ? 0.5 : 4);
+    changeChord(S.chords[0], force || !on);
     bed.gain.setTargetAtTime(S.bed, ac.currentTime, 2);
     applyMix();
   }
@@ -244,30 +292,34 @@ function createEngine() {
       on = true;
       master.gain.cancelScheduledValues(ac.currentTime);
       master.gain.setTargetAtTime(0.9, ac.currentTime, 2);
-      voices.forEach((v) => v.g.gain.setTargetAtTime(v.lvl, ac.currentTime, 4));
-      retune(0.5);
+      voices.forEach((v) => { if (!v.pending) v.g.gain.setTargetAtTime(v.lvl, ac.currentTime, 4); });
+      updateBeat(0.3);
     },
     stop() { if (!ac) return; on = false; master.gain.setTargetAtTime(0, ac.currentTime, 0.3); },
     fade(v, secs) { if (!ac) return; master.gain.cancelScheduledValues(ac.currentTime); master.gain.setTargetAtTime(v, ac.currentTime, secs / 3); },
     setMix(k, v) { mix[k] = v; applyMix(); },
     setStyle,
     setBeat(hz) { beatTarget = hz; },
-    setBin(v) { binOn = v; if (ac) retune(1.5); },
+    setBin(v) { binOn = v; if (ac) updateBeat(1.5); },
 
-    /** Breath noise follows the guide: brighter while inhaling, softer while exhaling, near-silent on holds. */
-    setBreath(level, phase, vis) {
+    /**
+     * Breath sound follows the guide's movement: audible while the lungs fill or empty, silent on holds.
+     * @param {number} level 0..1  @param {string} phase current step  @param {number} vis guide visibility
+     * @param {number} speed |Δlevel| per second
+     */
+    setBreath(level, phase, vis, speed = 0) {
       if (!ac) return;
-      const n = ac.currentTime, inn = /^in/.test(phase || ''), out = /^out/.test(phase || '');
-      const g = vis * (inn ? 0.02 + 0.045 * level : out ? 0.015 + 0.05 * level : 0.006);
-      breathGain.gain.setTargetAtTime(g, n, 0.12);
-      breathFilter.frequency.setTargetAtTime(inn ? 420 + 900 * level : 300 + 520 * level, n, 0.15);
+      const n = ac.currentTime, inn = /^in/.test(phase || '');
+      const g = vis * 0.08 * clamp(speed / 0.3, 0, 1.3);
+      breathGain.gain.setTargetAtTime(g, n, 0.15);
+      breathFilter.frequency.setTargetAtTime(inn ? 480 + 480 * level : 360 + 320 * level, n, 0.2);
     },
 
     /**
      * Called every frame.
      * @param {number} t animation time (s)  @param {number} c calm 0..1
      * @param {number|null} hr smoothed heart rate  @param {boolean} active session running
-     * @param {number} rel heart rate minus baseline: the music follows it (higher HR → brighter and slightly higher pitch)
+     * @param {number} rel heart rate minus baseline: the music's brightness follows it (higher HR → brighter, lower → darker)
      */
     tick(t, c, hr, active, rel = 0) {
       if (!ac || !on) return;
@@ -287,18 +339,13 @@ function createEngine() {
 
       const arousal = clamp((rel + 6) / 14);
       padF.frequency.setTargetAtTime((550 + 1100 * arousal + 200 * Math.sin(t * 0.021)) * S.bright, n, 3);
-      const cents = clamp(rel * 9, -140, 110);
-      if (Math.abs(cents - lastCents) > 2) {
-        lastCents = cents;
-        voices.forEach((v) => { v.L.detune.setTargetAtTime(cents, n, 4); v.R.detune.setTargetAtTime(cents, n, 4); });
-      }
-      if (Math.abs(beatTarget - beat) > 0.04) { beat = beatTarget; retune(2.5); }
+      applyPending(n);
+      if (Math.abs(beatTarget - beat) > 0.04) { beat = beatTarget; updateBeat(2.5); }
 
       if (n > next.chord) {
         if (S.chords.length > 1) {
           chordIdx = (chordIdx + 1) % S.chords.length;
-          S.chords[chordIdx].forEach((s, i) => (voices[i].f = st(s)));
-          retune(6);
+          changeChord(S.chords[chordIdx]);
         }
         next.chord = n + (26 + Math.random() * 14) * Math.min(S.slow, 3);
       }

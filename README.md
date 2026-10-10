@@ -17,7 +17,7 @@ Een rustgevende wereld die reageert op je hartslag. Kies een profiel (slaap, ont
   | Volle focus | kaarsvlam met inktcirkel | hartslag stabiel | → 14 Hz |
   | Energie | kampvuur dat oplaait | hartslag +5 tot +12 | ↑ 18 Hz |
 
-- **Muziek die je hartslag volgt.** De drone wordt helderer en iets hoger als je hartslag stijgt, en donkerder en dieper als hij daalt.
+- **Muziek die je hartslag volgt.** De drone wordt helderder als je hartslag stijgt en donkerder als hij daalt, zonder dat de toonhoogte gaat zweven.
 - **Ademhalingsoefeningen**, drie per profiel, met een visuele gids en ademgeluid. Ze staan standaard uit en kunnen tijdens de sessie wisselen.
 - **Live HRV en coherentie** met een borstband (bijvoorbeeld Garmin HRM 200): de tijd tussen hartslagen geeft je HRV, en tijdens de ademhalingsoefeningen zie je hoe sterk je hart je ademhaling volgt.
 - **Slaapstand** na een Slaap-sessie: het scherm wordt zwart en het geluid sterft in 15 minuten weg. Tik om wakker te worden.
