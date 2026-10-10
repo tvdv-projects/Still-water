@@ -21,17 +21,24 @@ export function progressStep(i) {
   scene().progress(i);
 }
 
-// Messages appear in a fixed band near the top (#msg). Keep the breathing guide's label below that band
-// so the two never overlap, whatever the screen height or safe-area insets are.
-let msgBandBottom = 0, msgCheck = 0;
-function clearOfMessages([cx, cy, R]) {
-  if (--msgCheck <= 0) {
-    msgCheck = 60;
-    const el = document.getElementById('msg');
-    if (el) msgBandBottom = el.getBoundingClientRect().top + 84; // room for up to three lines
+// The breathing guide must fit between the message band at the top (#msg) and the breathing
+// controls at the bottom (#breathBar), whatever the screen size or safe-area insets. Its label sits
+// above the ring and the coherence line below it; when space is tight the ring shrinks.
+let bandTop = 0, bandBottom = Infinity, layoutCheck = 0;
+function fitGuide([cx, cy, R]) {
+  if (--layoutCheck <= 0) {
+    layoutCheck = 30;
+    const msgEl = document.getElementById('msg'), bar = document.getElementById('breathBar');
+    bandTop = msgEl ? msgEl.getBoundingClientRect().top + 84 : 0; // room for up to three lines of message
+    bandBottom = bar && !bar.hidden ? bar.getBoundingClientRect().top - 10 : view.H - 110;
   }
-  const labelTop = cy - R * 1.15 - 22 - 16 - R * 0.2; // label sits above the outer ring (box guide a bit higher)
-  return labelTop < msgBandBottom ? [cx, cy + (msgBandBottom - labelTop), R] : [cx, cy, R];
+  const above = (r) => r * 1.35 + 40; // outer ring + label (box guide reaches a little higher)
+  const below = (r) => r * 1.35 + 32; // outer ring + coherence line
+  const space = bandBottom - bandTop;
+  if (above(R) + below(R) > space) R = Math.max(34, (space - 72) / 2.7);
+  const minY = bandTop + above(R), maxY = bandBottom - below(R);
+  cy = minY > maxY ? (minY + maxY) / 2 : Math.min(Math.max(cy, minY), maxY);
+  return [cx, cy, R];
 }
 
 export function drawFrame(dt) {
@@ -66,5 +73,5 @@ export function drawFrame(dt) {
     }
   }
 
-  drawBreath(breath, clearOfMessages(scene().anchor()), P.accent, app.coherence);
+  drawBreath(breath, fitGuide(scene().anchor()), P.accent, app.coherence);
 }
