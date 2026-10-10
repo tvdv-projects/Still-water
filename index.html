@@ -93,6 +93,7 @@ button[aria-pressed="true"]{background:rgba(236,228,214,.16);border-color:rgba(2
   <div class="right">
     <span class="timer" id="timer"></span>
     <div class="row">
+      <button id="stop" type="button" hidden>Stop</button>
       <button id="nums" type="button" aria-pressed="false">Cijfers verbergen</button>
       <button id="snd" type="button" aria-expanded="false" aria-controls="mix">Geluid</button>
     </div>
@@ -247,12 +248,26 @@ document.querySelectorAll('#durs button').forEach(b => { b.setAttribute('aria-pr
 
 function begin() {
   $('intro').classList.add('gone'); $('readout').hidden = false;
-  state = 'calib'; t0 = performance.now(); beatP = 0; fading = false; Snd.setMood(PROFILES[profKey].mood); Snd.fade(.9, 2); samples.length = 0; baseline = null; hrS = null; points = 0; litCount = 0; lamps.forEach(l => { l.lit = false; l.t = 0; });
+  state = 'calib'; $('stop').hidden = false; t0 = performance.now(); beatP = 0; fading = false; Snd.setMood(PROFILES[profKey].mood); Snd.fade(.9, 2); samples.length = 0; baseline = null; hrS = null; points = 0; litCount = 0; lamps.forEach(l => { l.lit = false; l.t = 0; });
   try { Snd.start(); setSnd(true); } catch (e) { setSnd(false); }
   try { navigator.wakeLock && navigator.wakeLock.request('screen').catch(() => {}); } catch (e) {}
   msg('Ga gemakkelijk zitten. Ik meet eerst een minuut hoe je nu bent.', 6000);
 }
-function finish() {
+function toIntro() {
+  $('summary').classList.add('gone'); $('intro').classList.remove('gone'); $('readout').hidden = true; $('sim').hidden = true; $('stop').hidden = true;
+  state = 'intro'; source = null; setChip('', 'Niet verbonden');
+  $('connNote').innerHTML = 'Zet op je Garmin <b>Hartslag uitzenden</b> aan en kies daarna je horloge in de lijst. Op de iPhone werkt dit in de Bluefy-browser.';
+}
+let stopArmed = 0;
+$('stop').addEventListener('click', e => {
+  e.currentTarget.blur();
+  if (performance.now() - stopArmed > 3000) { stopArmed = performance.now(); $('stop').textContent = 'Tik nog eens om te stoppen'; setTimeout(() => { if (performance.now() - stopArmed >= 3000) $('stop').textContent = 'Stop'; }, 3100); return; }
+  stopArmed = 0; $('stop').textContent = 'Stop';
+  if (state === 'session' && samples.some(s => s.t > CALIB)) finish(true);
+  else { Snd.fade(0, 3); toIntro(); }
+});
+function finish(early = false) {
+  $('stop').hidden = true; Snd.fade(0, early ? 4 : 20);
   state = 'done';
   const sess = samples.filter(s => s.t > CALIB);
   const last = sess.filter(s => s.t > sessionClock() - 60);
@@ -268,9 +283,9 @@ function finish() {
   const prev = hist.filter(h => h.src !== 'sim').slice(source === 'sim' ? 0 : 1, source === 'sim' ? 3 : 4);
   $('sHist').innerHTML = prev.length ? '<span class="label">Vorige sessies</span>' + prev.map(h => { const d = new Date(h.d); return `<span>${d.toLocaleDateString('nl-NL', {day: 'numeric', month: 'short'})} · ${h.b} → ${h.e} (${h.e <= h.b ? '−' : '+'}${Math.abs(h.b - h.e)})</span>`; }).join('') : '';
   $('summary').classList.remove('gone');
-  if (profKey !== 'slaap') Snd.bloom();
+  if (profKey !== 'slaap' && !early) Snd.bloom();
 }
-$('again').addEventListener('click', () => { $('summary').classList.add('gone'); $('intro').classList.remove('gone'); $('readout').hidden = true; $('sim').hidden = true; state = 'intro'; source = null; setChip('', 'Niet verbonden'); $('connNote').innerHTML = 'Zet op je Garmin <b>Hartslag uitzenden</b> aan en kies daarna je horloge in de lijst. Op de iPhone werkt dit in de Bluefy-browser.'; });
+$('again').addEventListener('click', toIntro);
 $('connect').addEventListener('click', () => { Snd.unlock(); connectBle(); });
 $('test').addEventListener('click', () => { Snd.unlock(); startSim(); });
 
@@ -463,7 +478,7 @@ const Snd = (() => {
     try { if (!ac) init(); ac.resume(); } catch (e) {}
   }
   function start() { unlock(); on = true; master.gain.cancelScheduledValues(ac.currentTime); master.gain.setTargetAtTime(.9, ac.currentTime, 2); voices.forEach(v => v.g.gain.setTargetAtTime(v.lvl, ac.currentTime, 4)); retune(.5); }
-  let beatTarget = 10, mood = {bright: 1, grain: 1, slow: 1, pulse: 1};
+  let lastCents = 0, beatTarget = 10, mood = {bright: 1, grain: 1, slow: 1, pulse: 1};
   function setBeat(hz) { beatTarget = hz; }
   function setMood(m) { mood = m; }
   function fade(v, secs) { if (!ac) return; master.gain.cancelScheduledValues(ac.currentTime); master.gain.setTargetAtTime(v, ac.currentTime, secs / 3); }
@@ -490,11 +505,15 @@ const Snd = (() => {
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.045, t + .03); g.gain.exponentialRampToValueAtTime(.0001, t + .9);
     o.connect(g).connect(pulseBus); o.start(t); o.stop(t + 1);
   }
-  function tick(t, c, hr, active) {
+  function tick(t, c, hr, active, rel = 0) {
     if (!ac || !on) return; const n = ac.currentTime, r = 1 - c;
     lap.gain.setTargetAtTime(.022 + .018 * r + .008 * Math.sin(t * .5), n, .8); lapF.frequency.setTargetAtTime(360 + 240 * r + 60 * Math.sin(t * .2), n, 1);
     wind.gain.setTargetAtTime(.003 + .03 * r * (.7 + .3 * Math.sin(t * .23)), n, 1.2); windF.frequency.setTargetAtTime(500 + 300 * Math.sin(t * .11), n, 1);
-    padF.frequency.setTargetAtTime((700 + 700 * c + 250 * Math.sin(t * .021)) * mood.bright, n, 3);
+    // rel = heart rate minus starting rate. Music tracks it: higher HR -> brighter and slightly higher, lower HR -> darker and deeper.
+    const arousal = clamp((rel + 6) / 14);
+    padF.frequency.setTargetAtTime((550 + 1100 * arousal + 200 * Math.sin(t * .021)) * mood.bright, n, 3);
+    const cents = clamp(rel * 9, -140, 110);
+    if (Math.abs(cents - lastCents) > 2) { lastCents = cents; voices.forEach(v => { v.L.detune.setTargetAtTime(cents, n, 4); v.R.detune.setTargetAtTime(cents, n, 4); }); }
     if (Math.abs(beatTarget - beat) > .04) { beat = beatTarget; retune(2.5); }
     if (n > nextChord) { chordIdx = (chordIdx + 1) % CHORDS.length; CHORDS[chordIdx].forEach((s, i) => voices[i].f = st(s)); retune(6); nextChord = n + (26 + Math.random() * 14) * mood.slow; }
     if (n > nextGrain) { grain(c); nextGrain = n + lerp(2.2, .35, c) * (.5 + Math.random()) / mood.grain; }
@@ -522,7 +541,7 @@ document.addEventListener('visibilitychange', () => { const ac = Snd.ac; if (!ac
 
 showProf();
 let last = performance.now();
-function loop(now) { const dt = Math.min(.05, (now - last) / 1000); last = now; if (state === 'calib' || state === 'session') updateSession(dt); draw(dt); hud(dt); Snd.tick(time, calmVis, hrS, state === 'session' || state === 'calib'); requestAnimationFrame(loop); }
+function loop(now) { const dt = Math.min(.05, (now - last) / 1000); last = now; if (state === 'calib' || state === 'session') updateSession(dt); draw(dt); hud(dt); Snd.tick(time, calmVis, hrS, state === 'session' || state === 'calib', state === 'session' && baseline != null && hrS != null ? hrS - baseline : 0); requestAnimationFrame(loop); }
 requestAnimationFrame(loop);
 window.__sw = {setState: o => Object.assign(window.__swState = window.__swState || {}, o), force: (c) => { calmVis = calm = c; }};
 })();
