@@ -34,8 +34,9 @@ src/
     context.js          canvas, schermmaat, tekenhulpjes
     frame.js            kiest de scène en tekent overlays
     breath-overlay.js   visuele ademgids (ring, vierkant, wisselende neusgaten)
+    effects.js          optionele beeldeffecten (menu Beeld)
     scenes/             lake.js, dawn.js, candle.js, campfire.js
-  ui/                   knoppen, HUD, meldingen, ademhalingsbalk
+  ui/                   knoppen, HUD, meldingen, ademhalingsbalk, menu Beeld (fx-menu.js)
   styles/main.css
 tests/                  unit tests (node --test)
 scripts/                lokale server, import-controle
@@ -76,6 +77,16 @@ stateDiagram-v2
 - **Rustmeting (calib).** De binaural-zweving volgt live de hartslag via `profile.start(hr)`.
 - **Sessie.** Elke frame berekent `scoring.js` uit het verschil met de beginwaarde, volgens het doel van het profiel (`drop`, `steady` of `rise`), drie dingen: *calm* (beeld en geluid), *rate* (voortgangspunten per seconde) en *lead* (hoe snel de zweving naar het doel van het profiel zakt). Bij `drop` wordt *lead* negatief als je hartslag stijgt; bij `rise` (Energie) gebeurt dat juist boven de bovengrens van +15.
 - **Voortgang.** Er zijn 7 stappen per sessie (lantaarns, toppen, cirkeldelen). Alle 7 halen vraagt gemiddeld een *rate* van 0,5 over de hele sessie.
+
+## Beeldeffecten
+
+`render/effects.js` bevat tien optionele effecten, elk met een schakelaar in het menu **Beeld** (`ui/fx-menu.js`). De keuze staat in localStorage onder `stilwater.fx`; standaard staan hartslag-rimpels, scène ademt mee en noorderlicht aan.
+
+Elke scène levert via `focus()` een brandpunt `{x, y, flat, water, sky}`: het punt waar de effecten om draaien, hoe plat kringen op het water liggen, en waar water en open lucht zitten. Zo weten noorderlicht (alleen in de lucht) en lichtkringen (alleen op het water) waar ze mogen tekenen, en zijn effecten die bij een scène niet passen in het menu gedimd.
+
+Volgorde per frame: *scène ademt mee* zet een schaal van 1 tot 3 % rond het brandpunt om de scène heen, dan de scène, dan de effecten achterin (noorderlicht, lichtkringen), dan die voorin (tunnel, lichtstroom, spiraal, caleidoscoop, mandala, rimpels, vonken), en daarna vignet, slaapdimming en ademgids.
+
+Ontwerpregels: alles beweegt traag en gelijkmatig op adem of hartslag, met één middelpunt, en niets flitst of flikkert (flikkeren kan duizeligheid of aanvallen uitlokken). Zonder ademgids volgen de effecten een rustig ritme van zes keer per minuut; zonder borstband maken de rimpels hun ritme uit de gemiddelde hartslag.
 
 ## Audio
 

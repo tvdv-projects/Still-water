@@ -10,6 +10,10 @@ const flame = { x: 0, y: 0, cy: 0 };
 export function reset() {}
 export function progress() {}
 
+export function focus() {
+  return { x: flame.x || view.W / 2, y: flame.cy || view.H * 0.5, flat: 1, water: 0, sky: 0 };
+}
+
 export function anchor() {
   return [flame.x, flame.cy, clamp(Math.min(view.W, view.H) * 0.14, 54, 115)];
 }

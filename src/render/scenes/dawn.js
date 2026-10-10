@@ -31,6 +31,10 @@ export function progress(i) {
 
 export const anchor = lakeAnchor;
 
+export function focus() {
+  return { x: view.W / 2, y: view.H * 0.72, flat: 0.3, water: view.H * 0.62, sky: 0 };
+}
+
 export function draw({ dt, time, calm: c, progress: pg }) {
   const { W, H } = view;
   const rough = 1 - c, hor = H * 0.62, amp = H * 0.3;

@@ -1,8 +1,10 @@
-// Draws one frame: the active profile's scene, a vignette, the sleep dimming and the breathing guide.
+// Draws one frame: the active profile's scene, the optional effects (Beeld menu), a vignette,
+// the sleep dimming and the breathing guide.
 
 import { app, breath, profile } from '../state.js';
 import { drawBreath } from './breath-overlay.js';
 import { ctx, view } from './context.js';
+import { beginBreathe, drawBackEffects, drawFrontEffects, endBreathe } from './effects.js';
 import * as campfire from './scenes/campfire.js';
 import * as candle from './scenes/candle.js';
 import * as dawn from './scenes/dawn.js';
@@ -50,6 +52,8 @@ export function drawFrame(dt) {
     ctx.fillRect(0, 0, W, H);
     return;
   }
+  const f = scene().focus();
+  const zoomed = beginBreathe(f);
   scene().draw({
     dt,
     time: app.time,
@@ -58,6 +62,10 @@ export function drawFrame(dt) {
     variant: P.variant,
     breathLevel: breath.level * breath.vis,
   });
+  drawBackEffects(dt, f, P.scene);
+  endBreathe(zoomed);
+  const guide = fitGuide(scene().anchor());
+  drawFrontEffects(dt, f, guide);
 
   const vg = ctx.createRadialGradient(W / 2, H * 0.55, Math.min(W, H) * 0.3, W / 2, H * 0.55, Math.max(W, H) * 0.8);
   vg.addColorStop(0, 'rgba(2,4,10,0)');
@@ -73,5 +81,5 @@ export function drawFrame(dt) {
     }
   }
 
-  drawBreath(breath, fitGuide(scene().anchor()), P.accent, app.coherence);
+  drawBreath(breath, guide, P.accent, app.coherence);
 }

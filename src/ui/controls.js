@@ -11,6 +11,7 @@ import { app, profile } from '../state.js';
 import { CALIB_SECONDS } from '../core/scoring.js';
 import { buildChips } from './breath-bar.js';
 import { $, $$, pressOnly } from './dom.js';
+import { initFxMenu, refreshFxMenu } from './fx-menu.js';
 
 function showProfile() {
   $('profDesc').textContent = profile().desc;
@@ -86,7 +87,15 @@ function initSoundPanel() {
     const panel = $('mix');
     panel.hidden = !panel.hidden;
     e.currentTarget.setAttribute('aria-expanded', String(!panel.hidden));
+    if (!panel.hidden) closePanel('fxPanel', 'vis');
     if (!audio.on && app.state !== 'intro') audio.start();
+  });
+  initFxMenu();
+  $('vis').addEventListener('click', (e) => {
+    const panel = $('fxPanel');
+    panel.hidden = !panel.hidden;
+    e.currentTarget.setAttribute('aria-expanded', String(!panel.hidden));
+    if (!panel.hidden) { refreshFxMenu(); closePanel('mix', 'snd'); }
   });
   const sliders = { vMusic: 'music', vNature: 'nature', vPulse: 'pulse', vBreath: 'breath' };
   const saved = store.get('mix', {});
@@ -102,9 +111,14 @@ function initSoundPanel() {
   }
   $('c').addEventListener('pointerdown', () => {
     if (app.state === 'sleeping') wake();
-    $('mix').hidden = true;
-    $('snd').setAttribute('aria-expanded', 'false');
+    closePanel('mix', 'snd');
+    closePanel('fxPanel', 'vis');
   });
+}
+
+function closePanel(id, buttonId) {
+  $(id).hidden = true;
+  $(buttonId).setAttribute('aria-expanded', 'false');
 }
 
 function initAudioLifecycle() {

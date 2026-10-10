@@ -26,6 +26,11 @@ export function progress(i) {
   burst = 1;
 }
 
+export function focus() {
+  const m = Math.min(view.W, view.H), baseW = clamp(m * 0.16, 60, 150);
+  return { x: view.W / 2, y: view.H * 0.68 - baseW * 0.35, flat: 1, water: 0, sky: view.H * 0.3 };
+}
+
 export function anchor() {
   const m = Math.min(view.W, view.H);
   return [view.W / 2, view.H * 0.38, clamp(m * 0.13, 54, 115)];

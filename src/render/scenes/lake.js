@@ -28,6 +28,11 @@ export function progress(i) {
   lamps[i].t = 0;
 }
 
+/** Focal point for visual effects: centre of the water, flattened (ripples lie on the surface). */
+export function focus() {
+  return { x: view.W / 2, y: view.H * 0.7, flat: 0.3, water: view.H * 0.6, sky: view.H * 0.42 };
+}
+
 export function anchor() {
   const m = Math.min(view.W, view.H);
   return [view.W / 2, view.H * 0.44, clamp(m * 0.15, 60, 130)];

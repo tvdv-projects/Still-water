@@ -23,6 +23,7 @@
       <button id="stop" type="button" hidden>Stop</button>
       <button id="nums" type="button" aria-pressed="false">Cijfers uit</button>
       <button id="snd" type="button" aria-expanded="false" aria-controls="mix">Geluid</button>
+      <button id="vis" type="button" aria-expanded="false" aria-controls="fxPanel">Beeld</button>
     </div>
   </div>
 </header>
@@ -33,6 +34,11 @@
   <label for="vPulse">Hartslagpuls</label><input id="vPulse" type="range" min="0" max="100" value="60">
   <label for="vBreath">Ademgeluid</label><input id="vBreath" type="range" min="0" max="100" value="60">
   <button id="bin" type="button" aria-pressed="false">Binaural aan</button>
+</div>
+
+<div class="mix fx" id="fxPanel" hidden>
+  <p class="fx-head">Beeldeffecten</p>
+  <div id="fxList"></div>
 </div>
 
 <div class="breath" id="breathBar" hidden>
