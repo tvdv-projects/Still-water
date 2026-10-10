@@ -3,7 +3,7 @@
 // Signal flow:
 //   drone voices (L/R oscillator pairs) → low-pass → musicBus (+ reverb)
 //   grains, swells, arpeggio, ticks, chimes  → musicBus (+ reverb)
-//   water or fire, wind, owl, birds          → natureBus
+//   water or fire, wind, animals (fauna.js)  → natureBus (+ reverb)
 //   sub pulse                                → pulseBus
 //   breath noise                             → breathBus
 //   all buses → master → compressor → speakers
@@ -12,6 +12,7 @@
 // The right one is detuned by the beat frequency, so the beat is woven into the music.
 
 import { clamp, lerp, TAU } from '../core/math.js';
+import { createFauna } from './fauna.js';
 import { STYLES } from './styles.js';
 
 const D2 = 73.42;
@@ -63,9 +64,10 @@ function createEngine() {
   const mix = { music: 0.8, nature: 0.7, pulse: 0.6, breath: 0.6 };
   const voices = [];
   let chordIdx = 0, arpI = 0;
-  const next = { chord: 0, grain: 0, swell: 0, pulse: 0, owl: 0, arp: 0, tick: 0, bird: 0, crackle: 0 };
+  const next = { chord: 0, grain: 0, swell: 0, pulse: 0, arp: 0, tick: 0, crackle: 0 };
   let styleName = 'glacial', S = STYLES.glacial;
-  let unlockEl = null, crackleBuf;
+  let unlockEl = null, crackleBuf, fauna;
+  let faunaNext = {};
 
   function init() {
     ac = new (window.AudioContext || window.webkitAudioContext)();
@@ -90,6 +92,10 @@ function createEngine() {
     const rg = ac.createGain();
     rg.gain.value = 0.6;
     rev.connect(rg).connect(musicBus);
+    // The animals get their own reverb into the nature bus, so the Natuur slider controls their echo too.
+    const natRev = ac.createConvolver(), ng = ac.createGain();
+    natRev.buffer = ib; ng.gain.value = 0.6;
+    natRev.connect(ng).connect(natureBus);
 
     const loop = (buf, filterType, freq, q, gainNode, bus) => {
       const s = ac.createBufferSource(); s.buffer = buf; s.loop = true;
@@ -101,6 +107,7 @@ function createEngine() {
     wind = ac.createGain(); wind.gain.value = 0; windF = loop(noiseBuffer(ac, 4, false), 'bandpass', 600, 0.6, wind, natureBus);
     bed = ac.createGain(); bed.gain.value = 0; loop(noiseBuffer(ac, 5, true), 'lowpass', 320, 0, bed, musicBus);
     crackleBuf = noiseBuffer(ac, 0.05, false);
+    fauna = createFauna(ac, natureBus, natRev);
     // Breath: pink noise, high-passed against rumble and gently low-passed so it sounds like air, not hiss.
     breathGain = ac.createGain(); breathGain.gain.value = 0;
     {
@@ -126,7 +133,7 @@ function createEngine() {
       voices.push({ L, R, g, f, lvl: [0.07, 0.07, 0.06, 0.05, 0.04][i], pending: null });
     });
     const t = ac.currentTime;
-    Object.assign(next, { chord: t + 28, grain: t + 2, swell: t + 9, pulse: t + 4, owl: t + 60, arp: t + 3, tick: t + 2, bird: t + 20 });
+    Object.assign(next, { chord: t + 28, grain: t + 2, swell: t + 9, pulse: t + 4, arp: t + 3, tick: t + 2 });
     setStyle(styleName, true);
   }
 
@@ -179,6 +186,7 @@ function createEngine() {
     if (!STYLES[name] || (name === styleName && !force)) return;
     styleName = name;
     S = STYLES[name];
+    faunaNext = {};
     if (!ac) return;
     chordIdx = 0;
     changeChord(S.chords[0], force || !on);
@@ -215,18 +223,6 @@ function createEngine() {
     o.connect(lp).connect(g); g.connect(musicBus); o.start(t); o.stop(t + 0.12);
   }
 
-  function bird() {
-    const t = ac.currentTime, p = ac.createStereoPanner ? ac.createStereoPanner() : null;
-    const notes = 2 + ((Math.random() * 4) | 0), base = 2600 + Math.random() * 1200;
-    for (let k = 0; k < notes; k++) {
-      const s = t + k * (0.11 + Math.random() * 0.06), o = ac.createOscillator(), g = ac.createGain();
-      o.frequency.setValueAtTime(base * (1 + Math.random() * 0.15), s); o.frequency.exponentialRampToValueAtTime(base * (1.25 + Math.random() * 0.2), s + 0.07);
-      g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(0.008, s + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, s + 0.09);
-      if (p) o.connect(g).connect(p); else o.connect(g).connect(natureBus);
-      o.start(s); o.stop(s + 0.1);
-    }
-    if (p) { p.pan.value = Math.random() * 1.6 - 0.8; p.connect(natureBus); p.connect(rev); }
-  }
 
   /** One fire crackle: a very short burst of filtered noise, randomly panned. */
   function crackle(intensity) {
@@ -249,15 +245,6 @@ function createEngine() {
     s.connect(f).connect(g).connect(musicBus); s.start(t); s.stop(t + 0.06);
   }
 
-  function owl() {
-    const t = ac.currentTime;
-    [[0, 392, 0.32], [0.55, 352, 0.9]].forEach(([d, f, len]) => {
-      const o = ac.createOscillator(), g = ac.createGain(), lfo = ac.createOscillator(), lg = ac.createGain();
-      o.frequency.value = f; lfo.frequency.value = 6; lg.gain.value = 6; lfo.connect(lg).connect(o.frequency);
-      g.gain.setValueAtTime(0, t + d); g.gain.linearRampToValueAtTime(0.015, t + d + 0.06); g.gain.setValueAtTime(0.015, t + d + len - 0.1); g.gain.linearRampToValueAtTime(0, t + d + len);
-      o.connect(g); g.connect(natureBus); o.start(t + d); lfo.start(t + d); o.stop(t + d + len + 0.05); lfo.stop(t + d + len + 0.05);
-    });
-  }
 
   function pulse() {
     const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
@@ -369,8 +356,11 @@ function createEngine() {
           next.pulse = n + every;
         }
       } else next.pulse = n + 1;
-      if (S.owl && n > next.owl && c > 0.55) { owl(); next.owl = n + 70 + Math.random() * 60; }
-      if (S.bird && n > next.bird) { if (c > 0.35) bird(); next.bird = n + 12 + Math.random() * 22; }
+      // Animals call now and then, each on its own random interval [min, max] seconds.
+      for (const [kind, [lo, hi]] of Object.entries(S.fauna || {})) {
+        if (faunaNext[kind] == null) faunaNext[kind] = n + lo * 0.3 + Math.random() * (hi - lo) * 0.5;
+        else if (n > faunaNext[kind]) { fauna[kind](); faunaNext[kind] = n + lo + Math.random() * (hi - lo); }
+      }
     },
 
     /** Progress chime: one step up the style's scale per lantern / peak / segment. */

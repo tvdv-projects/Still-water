@@ -30,6 +30,7 @@ src/
   audio/
     engine.js           Web Audio-engine: drone met binaural, lagen, effecten
     styles.js           muziekstijl per profiel
+    fauna.js            dierengeluiden (krekel, uil, kikker, duiker, koekoek, specht, wolf …)
   render/
     context.js          canvas, schermmaat, tekenhulpjes
     frame.js            kiest de scène en tekent overlays
@@ -95,6 +96,8 @@ Elke drone-stem bestaat uit twee oscillatoren: één voor links, één voor rech
 Toonhoogtes glijden nooit: bij een akkoordwissel vervaagt elke stem, springt in stilte naar de nieuwe toon en komt weer op, met de stemmen na elkaar zodat het geluid doorloopt. Alleen het rechteroor verschuift langzaam mee met de binaural-frequentie. De hartslag stuurt de klankkleur (filter), niet de toonhoogte; dat voorkomt het "vinger op de plaat"-effect.
 
 Het ademgeluid is roze ruis door een zacht laagdoorlaatfilter, en klinkt alleen terwijl de ademgids beweegt (stil bij vasthouden).
+
+Dieren (`fauna.js`) hebben een eigen galm die op de natuurbus uitkomt, zodat het schuifje Natuur ook hun echo regelt.
 
 Bussen: `music`, `nature`, `pulse` en `breath`, elk met een eigen schuifje in het geluidspaneel. Alles loopt via een compressor naar de uitgang.
 
