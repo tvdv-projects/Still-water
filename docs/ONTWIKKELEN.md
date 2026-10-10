@@ -17,7 +17,7 @@ Open daarna http://localhost:5173. Web Bluetooth werkt alleen via https of `loca
 
 ```sh
 npm test         # unit tests in tests/
-npm run check    # tests + controle dat elke import naar een bestaande export wijst
+npm run check    # tests + importcontrole + controle dat de cache-versies kloppen
 ```
 
 De tests dekken de pure logica: scoring, ademhalingsritme, profielconfiguratie en het uitlezen van het bluetooth-hartslagbericht. Beeld en geluid controleer je met de testmodus in de browser.
@@ -28,7 +28,9 @@ Handig in de browserconsole: `stilWater.app` en `stilWater.breath` laten de actu
 
 GitHub Pages publiceert de `main`-branch vanuit de root. Elke push staat binnen een paar minuten live op https://tvdv-projects.github.io/Still-water/. De CI-workflow (`.github/workflows/ci.yml`) draait bij elke push en pull request `npm run check`.
 
-Browsers en Bluefy cachen bestanden ongeveer 10 minuten. Zie je een oude versie, zet dan `?v=<iets nieuws>` achter het adres.
+**Draai vóór elke commit `npm run stamp`.** Browsers, en Bluefy in het bijzonder, houden JavaScript-modules in de cache, ook als de pagina zelf ververst is. `scripts/stamp.js` zet daarom in `index.html` een import map waarin elke module en de stylesheet een inhoudshash krijgt (`?v=…`). Verandert een bestand, dan verandert zijn adres en haalt de browser het opnieuw op; ongewijzigde bestanden blijven in de cache. Vergeet je het, dan faalt de CI.
+
+De pagina zelf (`index.html`) cachet GitHub Pages ongeveer 10 minuten. Wil je direct de nieuwste versie, zet dan `?v=<iets nieuws>` achter het adres.
 
 ## Een profiel toevoegen
 

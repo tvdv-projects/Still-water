@@ -104,7 +104,7 @@ iOS: geluid start alleen na een tik. `audio.unlock()` wordt daarom synchroon in 
 
 | Keuze | Waarom | Afweging |
 |---|---|---|
-| Native ES-modules, geen bundler | geen dependencies of buildpipeline, direct publiceerbaar | ±25 kleine verzoeken bij de eerste keer laden; bij deze omvang geen merkbaar verschil |
+| Native ES-modules, geen bundler | geen dependencies of buildpipeline, direct publiceerbaar | ±30 kleine verzoeken bij de eerste keer laden; cache-versies via een import map die `npm run stamp` bijwerkt |
 | Canvas 2D in plaats van WebGL | eenvoudiger, ruim snel genoeg voor deze scènes | minder ruimte voor zware effecten |
 | Eén mutable state-object | weinig code, makkelijk te volgen | modules zijn gekoppeld aan de vorm van `app` |
 | JSDoc in plaats van TypeScript | geen compileerstap | geen afgedwongen typecontrole |

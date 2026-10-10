@@ -11,6 +11,7 @@
   "scripts": {
     "start": "node scripts/serve.js",
     "test": "node --test",
-    "check": "node --test && node scripts/check-imports.js"
+    "stamp": "node scripts/stamp.js",
+    "check": "node --test && node scripts/check-imports.js && node scripts/stamp.js --check"
   }
 }
