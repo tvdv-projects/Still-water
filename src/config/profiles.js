@@ -1,0 +1,81 @@
+// The four session profiles. Each profile decides:
+//  - which scene and music style are used,
+//  - the goal: 'drop' (lower the heart rate) or 'steady' (keep it stable),
+//  - the binaural beat: `start(hr)` picks a starting frequency from the current
+//    heart rate, after which the beat is led towards `target` over `reach` of the session,
+//  - which breathing techniques are offered (keys of BREATHS in ./breathing.js).
+// See docs/PROFIELEN.md for the reasoning behind each choice.
+
+import { clamp } from '../core/math.js';
+
+export const PROFILES = {
+  slaap: {
+    name: 'Slaap',
+    scene: 'lake',
+    variant: 'sleep',
+    style: 'deep',
+    goal: 'drop',
+    start: (hr) => clamp(7 + (hr - 55) * 0.15, 7, 12),
+    target: 2.5,
+    reach: 0.75,
+    desc: 'Het meer diep in de nacht. De maan zakt en de lantaarns doven één voor één terwijl je hartslag daalt. Binaural naar 2,5 Hz, donkere muziek die aan het eind wegsterft.',
+    breaths: ['b478', 'long48', 'belly57'],
+    accent: '150,170,225',
+    title: 'Welterusten',
+    unit: (n) => `${n} van de 7 lantaarns doofden.`,
+    lines: ['Een lantaarn dooft.', 'Het water wordt zwaar en stil.', 'De maan zakt achter de bergen.', 'Je hoeft niets meer te doen.', 'Nog een paar lichtjes.', 'Bijna donker.', 'Welterusten.'],
+    nudge: 'Geeft niet. Laat je lichaam zwaar worden.',
+    fadeOut: true,
+  },
+  rust: {
+    name: 'Ontspanning',
+    scene: 'lake',
+    variant: 'calm',
+    style: 'glacial',
+    goal: 'drop',
+    start: (hr) => clamp(9 + (hr - 55) * 0.18, 9, 14),
+    target: 6,
+    reach: 0.6,
+    desc: 'Het nachtelijke meer: de mist trekt op en de lantaarns gaan aan naarmate je hartslag zakt. Binaural naar 6 Hz, koude ambient.',
+    breaths: ['reso55', 'sigh', 'long46'],
+    accent: '159,214,194',
+    title: 'Het meer is stil',
+    unit: (n) => `${n} van de 7 lantaarns brandden.`,
+    lines: ['De eerste lantaarn gaat aan.', 'Het water wordt stiller.', 'De mist trekt op.', 'Halverwege. Je doet niets verkeerd.', 'De sterren komen tevoorschijn.', 'Nog even zo blijven.', 'Alle lantaarns branden.'],
+    nudge: 'Geeft niet. Laat je schouders zakken en kijk naar het water.',
+  },
+  focus: {
+    name: 'Ontspannen focus',
+    scene: 'dawn',
+    style: 'warm',
+    goal: 'drop',
+    start: (hr) => clamp(13 + (hr - 55) * 0.15, 13, 18),
+    target: 10,
+    reach: 0.5,
+    desc: 'Een bergmeer in het blauwe uur. De mist trekt op en de toppen kleuren goud als je tot rust komt. Binaural naar 10 Hz, warme en lichte muziek.',
+    breaths: ['reso5', 'box', 'nadi'],
+    accent: '255,205,150',
+    title: 'De dag is begonnen',
+    unit: (n) => `${n} van de 7 toppen kleurden goud.`,
+    lines: ['De eerste top vangt licht.', 'De mist trekt op.', 'Het meer wordt een spiegel.', 'Halverwege. Rustig en helder.', 'Het licht kruipt verder.', 'Bijna alle toppen gloeien.', 'De dag is begonnen.'],
+    nudge: 'Geeft niet. Kijk naar de bergen en laat het los.',
+  },
+  volle: {
+    name: 'Volle focus',
+    scene: 'candle',
+    style: 'minimal',
+    goal: 'steady',
+    start: (hr) => clamp(16 + (hr - 55) * 0.1, 16, 20),
+    target: 14,
+    reach: 0.4,
+    desc: 'Eén kaarsvlam in het donker. Hier telt een stabiele hartslag, niet een lage. De vlam wordt rustiger en een inktcirkel sluit zich. Binaural naar 14 Hz, minimale muziek met een gelijkmatige tik.',
+    breaths: ['box', 'nadi', 'equal'],
+    accent: '255,186,120',
+    title: 'De cirkel is rond',
+    unit: (n) => `${n} van de 7 delen van de cirkel.`,
+    lines: ['De vlam staat stil.', 'Eén punt. Verder niets.', 'De cirkel groeit.', 'Halverwege. Blijf bij de vlam.', 'Gelijkmatig. Goed zo.', 'Bijna rond.', 'De cirkel is gesloten.'],
+    nudge: 'Kijk naar de vlam. Laat de rest even.',
+  },
+};
+
+export const DEFAULT_PROFILE = 'rust';

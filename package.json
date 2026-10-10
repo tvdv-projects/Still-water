@@ -1,0 +1,16 @@
+{
+  "name": "stil-water",
+  "version": "1.0.0",
+  "description": "Een rustgevende wereld die reageert op je hartslag, met binaural beats en ademhalingsoefeningen.",
+  "type": "module",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node scripts/serve.js",
+    "test": "node --test",
+    "check": "node --test && node scripts/check-imports.js"
+  }
+}
