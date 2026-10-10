@@ -7,7 +7,7 @@ import { BREATHS, STEP_TO } from '../config/breathing.js';
 import { clamp, easeIO, lerp, smoothing } from './math.js';
 
 export function createBreath() {
-  return { on: false, key: null, i: 0, t: 0, from: 0, level: 0, vis: 0, pending: null, hinted: {} };
+  return { on: false, key: null, i: 0, t: 0, from: 0, level: 0, vis: 0, pending: null, hinted: {}, cycles: 0 };
 }
 
 /** Start `key` at the beginning of its cycle. Returns true the first time this technique is used. */
@@ -17,6 +17,7 @@ export function startBreath(b, key) {
   b.t = 0;
   b.from = b.level;
   b.pending = null;
+  b.cycles = 0;
   const first = !b.hinted[key];
   b.hinted[key] = true;
   return first;
@@ -55,6 +56,7 @@ export function stepBreath(b, dt) {
   b.i++;
   if (b.i < B.steps.length) return null;
   b.i = 0;
+  b.cycles++;
   if (!b.pending) return null;
   const key = b.pending;
   return { key, first: startBreath(b, key) };

@@ -17,7 +17,7 @@ function preferred() {
 
 /** Start a technique and show its instruction the first time it is used. */
 export function beginTechnique(key) {
-  if (startBreath(breath, key)) msg(BREATHS[key].hint, 5200);
+  if (startBreath(breath, key)) msg(BREATHS[key].hint, Math.max(5200, BREATHS[key].hint.length * 55));
 }
 
 export function buildChips() {

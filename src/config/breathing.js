@@ -1,7 +1,8 @@
 // Breathing techniques. Each technique is a cycle of [phase, seconds] steps.
 // Phases starting with 'in' fill the guide, phases starting with 'out' empty it,
 // every other phase (hold, hold2, rest) keeps the current level.
-// `shape` selects the visual guide: default ring segments, 'box' or 'nadi'.
+// `shape` selects the visual guide: default ring segments, 'box', 'nadi' or 'pulse' (rapid pumps).
+// `levels` overrides how full the guide gets per phase for that technique.
 
 export const BREATHS = {
   b478: { name: '4-7-8', steps: [['in', 4], ['hold', 7], ['out', 8]], hint: 'Adem in door je neus, houd ontspannen vast, en blaas lang uit door je mond.' },
@@ -14,15 +15,30 @@ export const BREATHS = {
   box: { name: 'Box', shape: 'box', steps: [['in', 4], ['hold', 4], ['out', 4], ['hold2', 4]], hint: 'Volg het lichtpunt langs het vierkant.' },
   nadi: { name: 'Wisselende neusgaten', shape: 'nadi', steps: [['inL', 4], ['outR', 4], ['inR', 4], ['outL', 4]], hint: 'Sluit met je duim of vinger het andere neusgat. Volg de oplichtende kant.' },
   equal: { name: 'Gelijke ademhaling', steps: [['in', 4], ['out', 4]], hint: 'Even lang in als uit. Rustig en alert.' },
+
+  // Activating techniques (Energie). Deliberately mild: no hyperventilation, no breath-holding rounds.
+  longIn: { name: 'Lange inademing', steps: [['in', 6], ['out', 3]], hint: 'Lang en vol in door je neus, kort en krachtig uit.' },
+  stairs: { name: 'Trappetjes', steps: [['inA', 1], ['inB', 1], ['inC', 1], ['outF', 2]], hint: 'Drie korte snuiven in door je neus, dan één krachtige uitademing door je mond.' },
+  fire: {
+    name: 'Vuurademhaling',
+    shape: 'pulse',
+    // One round: 20 short, active exhales from the belly (the inhale follows passively), then 20 s of calm breathing.
+    steps: [...Array.from({ length: 20 }, () => [['outP', 0.35], ['inP', 0.35]]).flat(), ['rest', 20]],
+    levels: { outP: 0.15, inP: 0.55, rest: 0.45 },
+    pumps: 20,
+    rounds: 3,
+    hint: 'Zittend doen, nooit in water of tijdens het rijden. Korte stoten uit vanuit je buik. Duizelig? Stop en adem rustig.',
+  },
 };
 
 export const STEP_LABEL = {
   in: 'In', in2: 'Nog een beetje in', hold: 'Vasthouden', hold2: 'Vasthouden', out: 'Uit', rest: 'Rust',
   inL: 'In · links', inR: 'In · rechts', outL: 'Uit · links', outR: 'Uit · rechts',
+  inA: 'Snuif in', inB: 'Snuif in', inC: 'Snuif in', outF: 'Krachtig uit', outP: 'Korte stoten uit', inP: 'Korte stoten uit',
 };
 
 /** Level the guide moves to during a phase; phases not listed hold their level. */
-export const STEP_TO = { in: 1, in2: 1, inL: 1, inR: 1, out: 0, outL: 0, outR: 0 };
+export const STEP_TO = { in: 1, in2: 1, inL: 1, inR: 1, out: 0, outL: 0, outR: 0, inA: 0.4, inB: 0.72, inC: 1, outF: 0 };
 
 /** Duration of one full cycle in seconds. */
 export const cycleSeconds = (key) => BREATHS[key].steps.reduce((s, [, d]) => s + d, 0);

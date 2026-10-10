@@ -43,7 +43,11 @@ export function updateHud(dt) {
     d.textContent = `meten… ${Math.max(0, Math.ceil(CALIB_SECONDS - t))} s`;
     d.className = 'delta';
   } else if (app.state === 'session' && app.hrS != null) {
-    if (P.goal === 'steady') {
+    if (P.goal === 'rise') {
+      const rise = app.hrS - app.baseline, [lo, hi] = P.band;
+      d.textContent = `${rise >= 0 ? '+' : '−'}${nl(Math.abs(rise))} t.o.v. begin` + (rise > hi + 3 ? ' · rustig aan' : '');
+      d.className = 'delta' + (rise >= lo && rise <= hi + 3 ? ' down' : '');
+    } else if (P.goal === 'steady') {
       d.textContent = `stabiliteit ${Math.round(app.stability * 100)}%`;
       d.className = 'delta' + (app.stability > 0.7 ? ' down' : '');
     } else {

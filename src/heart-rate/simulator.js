@@ -1,6 +1,6 @@
 // Test mode: a simulated heart rate, either drifting down automatically or set with a slider.
 
-import { app, recordSample } from '../state.js';
+import { app, profile, recordSample } from '../state.js';
 import { $ } from '../ui/dom.js';
 import { setStatus } from '../ui/status.js';
 
@@ -10,7 +10,8 @@ function tick() {
   if (app.source !== 'sim') return;
   if (auto) {
     const m = (performance.now() - t0) / 60000;
-    target = 74 - Math.min(13, m * 2.2) + Math.sin(m * 2.1) * 1.5;
+    // Drift down, or up for profiles that aim to raise the heart rate.
+    target = profile().goal === 'rise' ? 72 + Math.min(10, m * 3) + Math.sin(m * 2.1) * 1.5 : 74 - Math.min(13, m * 2.2) + Math.sin(m * 2.1) * 1.5;
     $('simHr').value = Math.round(target);
     $('simVal').textContent = Math.round(target);
   }

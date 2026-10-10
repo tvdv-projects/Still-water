@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { beatAt, dropScore, needPerStep, stabilityOf, stdDev, steadyScore, summarize } from '../src/core/scoring.js';
+import { beatAt, dropScore, needPerStep, riseScore, stabilityOf, stdDev, steadyScore, summarize } from '../src/core/scoring.js';
 
 describe('dropScore', () => {
   it('gives no progress when the heart rate has not dropped', () => {
@@ -41,6 +41,27 @@ describe('steady scoring (Volle focus)', () => {
   });
 });
 
+describe('riseScore (Energie)', () => {
+  it('gives no progress without a rise', () => {
+    assert.equal(riseScore(0).rate, 0);
+    assert.equal(riseScore(-4).rate, 0);
+  });
+  it('ramps up towards the band and is full inside it', () => {
+    assert.ok(riseScore(3).rate > 0 && riseScore(3).rate < 1);
+    assert.equal(riseScore(5).rate, 1);
+    assert.equal(riseScore(12).rate, 1);
+  });
+  it('never rewards overdoing it', () => {
+    assert.ok(riseScore(14).rate < 1);
+    assert.equal(riseScore(16).rate, 0);
+    assert.equal(riseScore(16).over, true);
+    assert.ok(riseScore(16).lead < 0, 'binaural is pulled back above the ceiling');
+  });
+  it('leads the binaural beat faster as the heart rate rises', () => {
+    assert.ok(riseScore(8).lead > riseScore(2).lead);
+  });
+});
+
 describe('helpers', () => {
   it('stdDev', () => {
     assert.equal(stdDev([5]), 0);
@@ -67,6 +88,7 @@ describe('summarize', () => {
     assert.ok(s.end < 70 && s.end > 66);
     assert.ok(Math.abs(s.drop - (72 - s.end)) < 1e-9);
     assert.ok(s.min <= s.end);
+    assert.ok(s.max >= s.end);
   });
   it('ignores calibration samples', () => {
     const s = summarize([{ t: 10, hr: 200 }, { t: 70, hr: 60 }], 60, 70);

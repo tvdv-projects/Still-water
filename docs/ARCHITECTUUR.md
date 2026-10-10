@@ -16,7 +16,7 @@ src/
   state.js              gedeelde app-state, ademhalingsstate, hartslagmetingen
   session.js            sessieverloop: rustmeting → sessie → overzicht
   config/
-    profiles.js         de vier profielen (scène, stijl, doel, binaural, oefeningen, teksten)
+    profiles.js         de profielen (scène, stijl, doel, binaural, oefeningen, teksten)
     breathing.js        ademhalingstechnieken als reeksen [fase, seconden]
   core/                 pure logica, getest
     math.js             clamp, lerp, easing, kleurhulpjes
@@ -33,7 +33,7 @@ src/
     context.js          canvas, schermmaat, tekenhulpjes
     frame.js            kiest de scène en tekent overlays
     breath-overlay.js   visuele ademgids (ring, vierkant, wisselende neusgaten)
-    scenes/             lake.js, dawn.js, candle.js
+    scenes/             lake.js, dawn.js, candle.js, campfire.js
   ui/                   knoppen, HUD, meldingen, ademhalingsbalk
   styles/main.css
 tests/                  unit tests (node --test)
@@ -71,7 +71,7 @@ stateDiagram-v2
 ```
 
 - **Rustmeting (calib).** De binaural-zweving volgt live de hartslag via `profile.start(hr)`.
-- **Sessie.** Elke frame berekent `scoring.js` uit het verschil met de beginwaarde drie dingen: *calm* (beeld en geluid), *rate* (voortgangspunten per seconde) en *lead* (hoe snel de zweving naar het doel van het profiel zakt). Bij een stijgende hartslag wordt *lead* negatief en schuift de zweving terug.
+- **Sessie.** Elke frame berekent `scoring.js` uit het verschil met de beginwaarde, volgens het doel van het profiel (`drop`, `steady` of `rise`), drie dingen: *calm* (beeld en geluid), *rate* (voortgangspunten per seconde) en *lead* (hoe snel de zweving naar het doel van het profiel zakt). Bij `drop` wordt *lead* negatief als je hartslag stijgt; bij `rise` (Energie) gebeurt dat juist boven de bovengrens van +15.
 - **Voortgang.** Er zijn 7 stappen per sessie (lantaarns, toppen, cirkeldelen). Alle 7 halen vraagt gemiddeld een *rate* van 0,5 over de hele sessie.
 
 ## Audio

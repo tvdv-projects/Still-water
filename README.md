@@ -1,13 +1,13 @@
 # Stil Water
 
-Een rustgevende wereld die reageert op je hartslag. Kies een profiel (slaap, ontspanning, ontspannen focus of volle focus) en kijk hoe het beeld en de muziek veranderen terwijl je lichaam volgt. Met binaural beats die bij je huidige hartslag beginnen, en ademhalingsoefeningen per profiel.
+Een rustgevende wereld die reageert op je hartslag. Kies een profiel (slaap, ontspanning, ontspannen focus, volle focus of energie) en kijk hoe het beeld en de muziek veranderen terwijl je lichaam volgt. Met binaural beats die bij je huidige hartslag beginnen, en ademhalingsoefeningen per profiel.
 
 **Live:** https://tvdv-projects.github.io/Still-water/
 
 ## Wat het doet
 
 - **Hartslag live via bluetooth.** Elke hartslagmeter met de standaard Heart Rate Service werkt, bijvoorbeeld een Garmin met *Hartslag uitzenden* aan, of een borstband.
-- **Vier profielen**, elk met een eigen scène, muziekstijl, binaural-bereik en doel:
+- **Vijf profielen**, elk met een eigen scène, muziekstijl, binaural-bereik en doel:
 
   | Profiel | Scène | Doel | Binaural |
   |---|---|---|---|
@@ -15,6 +15,7 @@ Een rustgevende wereld die reageert op je hartslag. Kies een profiel (slaap, ont
   | Ontspanning | nachtelijk meer, lantaarns gaan aan | hartslag omlaag | → 6 Hz |
   | Ontspannen focus | bergmeer bij dageraad | hartslag licht omlaag | → 10 Hz |
   | Volle focus | kaarsvlam met inktcirkel | hartslag stabiel | → 14 Hz |
+  | Energie | kampvuur dat oplaait | hartslag +5 tot +12 | ↑ 18 Hz |
 
 - **Muziek die je hartslag volgt.** De drone wordt helderer en iets hoger als je hartslag stijgt, en donkerder en dieper als hij daalt.
 - **Ademhalingsoefeningen**, drie per profiel, met een visuele gids en ademgeluid. Ze staan standaard uit en kunnen tijdens de sessie wisselen.

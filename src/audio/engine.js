@@ -3,7 +3,7 @@
 // Signal flow:
 //   drone voices (L/R oscillator pairs) → low-pass → musicBus (+ reverb)
 //   grains, swells, arpeggio, ticks, chimes  → musicBus (+ reverb)
-//   water, wind, owl, birds                  → natureBus
+//   water or fire, wind, owl, birds          → natureBus
 //   sub pulse                                → pulseBus
 //   breath noise                             → breathBus
 //   all buses → master → compressor → speakers
@@ -49,9 +49,9 @@ function createEngine() {
   const mix = { music: 0.8, nature: 0.7, pulse: 0.6, breath: 0.6 };
   const voices = [];
   let chordIdx = 0, arpI = 0;
-  const next = { chord: 0, grain: 0, swell: 0, pulse: 0, owl: 0, arp: 0, tick: 0, bird: 0 };
+  const next = { chord: 0, grain: 0, swell: 0, pulse: 0, owl: 0, arp: 0, tick: 0, bird: 0, crackle: 0 };
   let styleName = 'glacial', S = STYLES.glacial;
-  let unlockEl = null;
+  let unlockEl = null, crackleBuf;
 
   function init() {
     ac = new (window.AudioContext || window.webkitAudioContext)();
@@ -86,6 +86,7 @@ function createEngine() {
     lap = ac.createGain(); lap.gain.value = 0.03; lapF = loop(noiseBuffer(ac, 6, true), 'lowpass', 500, 0, lap, natureBus);
     wind = ac.createGain(); wind.gain.value = 0; windF = loop(noiseBuffer(ac, 4, false), 'bandpass', 600, 0.6, wind, natureBus);
     bed = ac.createGain(); bed.gain.value = 0; loop(noiseBuffer(ac, 5, true), 'lowpass', 320, 0, bed, musicBus);
+    crackleBuf = noiseBuffer(ac, 0.05, false);
     breathGain = ac.createGain(); breathGain.gain.value = 0; breathFilter = loop(noiseBuffer(ac, 3, false), 'bandpass', 500, 0.7, breathGain, breathBus);
 
     padF = ac.createBiquadFilter(); padF.type = 'lowpass'; padF.frequency.value = 500; padF.Q.value = 0.4;
@@ -179,6 +180,27 @@ function createEngine() {
     if (p) { p.pan.value = Math.random() * 1.6 - 0.8; p.connect(natureBus); p.connect(rev); }
   }
 
+  /** One fire crackle: a very short burst of filtered noise, randomly panned. */
+  function crackle(intensity) {
+    const t = ac.currentTime, s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    const p = ac.createStereoPanner ? ac.createStereoPanner() : null;
+    s.buffer = crackleBuf; s.playbackRate.value = 0.6 + Math.random() * 1.4;
+    f.type = 'highpass'; f.frequency.value = 1200 + Math.random() * 3000;
+    const len = 0.008 + Math.random() * 0.025;
+    g.gain.setValueAtTime((0.02 + Math.random() * 0.05) * (0.5 + intensity), t); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    s.connect(f).connect(g);
+    if (p) { p.pan.value = Math.random() * 1.2 - 0.6; g.connect(p).connect(natureBus); } else g.connect(natureBus);
+    s.start(t); s.stop(t + len + 0.02);
+  }
+
+  /** Soft shaker hit for the off-beat. */
+  function shaker(t) {
+    const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = crackleBuf; f.type = 'bandpass'; f.frequency.value = 6500; f.Q.value = 1.2;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.03, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+    s.connect(f).connect(g).connect(musicBus); s.start(t); s.stop(t + 0.06);
+  }
+
   function owl() {
     const t = ac.currentTime;
     [[0, 392, 0.32], [0.55, 352, 0.9]].forEach(([d, f, len]) => {
@@ -250,7 +272,11 @@ function createEngine() {
     tick(t, c, hr, active, rel = 0) {
       if (!ac || !on) return;
       const n = ac.currentTime, r = 1 - c;
-      if (S.ocean) {
+      if (S.fire) {
+        // Low roar of the fire, louder and brighter with energy.
+        lap.gain.setTargetAtTime(0.018 + 0.04 * c + 0.008 * Math.sin(t * 3.1) * Math.sin(t * 1.7), n, 0.3);
+        lapF.frequency.setTargetAtTime(220 + 300 * c, n, 0.5);
+      } else if (S.ocean) {
         const sw = Math.pow(0.5 + 0.5 * Math.sin((t * TAU) / 11), 2);
         lap.gain.setTargetAtTime(0.012 + 0.055 * sw, n, 0.6); lapF.frequency.setTargetAtTime(260 + 380 * sw, n, 0.6);
       } else {
@@ -279,14 +305,23 @@ function createEngine() {
       if (n > next.grain) { if (S.grain > 0) grain(c); next.grain = n + (lerp(2.2, 0.35, c) * (0.5 + Math.random())) / Math.max(0.1, S.grain); }
       if (n > next.swell) { if (Math.random() < S.swell) swell(); next.swell = n + 14 + Math.random() * 16; }
       if (S.arp && n > next.arp) {
-        const ch = S.chords[chordIdx], k = [2, 3, 4, 3][arpI++ % 4];
-        note(st(ch[k] + 24), 0.016, 0.02, 1.6, next.arp, arpI % 2 ? -0.35 : 0.35);
-        next.arp = Math.max(n, next.arp) + 1.6;
+        const every = S.arpEvery || 1.6, pattern = S.arpPattern || [2, 3, 4, 3];
+        const ch = S.chords[chordIdx], k = pattern[arpI++ % pattern.length];
+        note(st(ch[k] + 24), every < 1 ? 0.012 : 0.016, 0.01, every < 1 ? 0.6 : 1.6, next.arp, arpI % 2 ? -0.35 : 0.35);
+        next.arp = Math.max(n, next.arp) + every;
       }
+      if (S.fire && n > next.crackle) { crackle(c); next.crackle = n + (0.04 + Math.random() * 0.35) / (0.5 + c); }
       if (S.tick && active) {
         while (next.tick < n + 0.1) { if (next.tick > n - 0.05) tickSound(next.tick); next.tick += 1; }
       } else next.tick = n + 0.5;
-      if (active && hr) { if (n > next.pulse) { pulse(); next.pulse = n + 60 / Math.max(40, hr - S.pulseOff); } } else next.pulse = n + 1;
+      if (active && hr) {
+        if (n > next.pulse) {
+          const every = 60 / Math.max(40, hr - S.pulseOff);
+          pulse();
+          if (S.perc) shaker(n + every / 2);
+          next.pulse = n + every;
+        }
+      } else next.pulse = n + 1;
       if (S.owl && n > next.owl && c > 0.55) { owl(); next.owl = n + 70 + Math.random() * 60; }
       if (S.bird && n > next.bird) { if (c > 0.35) bird(); next.bird = n + 12 + Math.random() * 22; }
     },

@@ -2,13 +2,13 @@
 //
 // During calibration the binaural beat follows the live heart rate, and the average
 // of seconds 15–60 becomes the baseline. During the session the profile's scoring
-// (drop or steady) turns the heart rate into calm, progress points and the speed at
+// (drop, steady or rise) turns the heart rate into calm, progress points and the speed at
 // which the beat is led from its starting frequency to the profile's target.
 
 import { audio } from './audio/engine.js';
 import { PROFILES } from './config/profiles.js';
 import { clamp, lerp, smoothing } from './core/math.js';
-import { beatAt, CALIB_SECONDS, dropScore, needPerStep, stdDev, steadyScore, STEPS, summarize } from './core/scoring.js';
+import { beatAt, CALIB_SECONDS, dropScore, needPerStep, riseScore, stdDev, steadyScore, STEPS, summarize } from './core/scoring.js';
 import { store } from './core/storage.js';
 import { progressStep, resetScenes } from './render/frame.js';
 import { app, breath, profile, sessionClock } from './state.js';
@@ -66,9 +66,15 @@ export function finish(early = false) {
   $('sTitle').textContent = P.title;
   $('sBase').textContent = Math.round(app.baseline);
   $('sEnd').textContent = Math.round(s.end);
-  $('sMin').textContent = s.min == null ? '--' : Math.round(s.min);
   let verdict;
-  if (P.goal === 'steady') {
+  $('sMinL').textContent = P.goal === 'rise' ? 'Hoogste' : 'Laagste';
+  $('sMin').textContent = P.goal === 'rise' ? (s.max == null ? '--' : Math.round(s.max)) : s.min == null ? '--' : Math.round(s.min);
+  if (P.goal === 'rise') {
+    const rise = -s.drop, [lo, hi] = P.band;
+    $('sDropL').textContent = 'Gestegen';
+    $('sDrop').textContent = (rise >= 0 ? '+' : '−') + nl(Math.abs(rise));
+    verdict = rise >= lo && rise <= hi + 1 ? 'Je kwam mooi in de zone.' : rise > hi + 1 ? 'Flink opgewarmd, misschien zelfs iets te veel.' : rise >= 2 ? 'Je warmde een beetje op.' : 'Je hartslag bleef vrij laag. De vuurademhaling helpt om op te warmen.';
+  } else if (P.goal === 'steady') {
     $('sDropL').textContent = 'Gem. afwijking';
     $('sDrop').textContent = '±' + nl(s.meanAbsDev);
     verdict = s.meanAbsDev <= 2.5 ? 'Je hartslag bleef mooi stabiel.' : s.meanAbsDev <= 5 ? 'Redelijk stabiel, met wat golven.' : 'Je hartslag schommelde flink. Ook goed om te weten.';
@@ -117,7 +123,9 @@ export function updateSession(dt) {
   } else if (app.state === 'session' && app.hrS != null) {
     const diff = app.baseline - app.hrS;
     let score;
-    if (P.goal === 'steady') {
+    if (P.goal === 'rise') {
+      score = riseScore(-diff, P.band);
+    } else if (P.goal === 'steady') {
       sdTimer -= dt;
       if (sdTimer <= 0) {
         sdTimer = 1;
@@ -129,11 +137,14 @@ export function updateSession(dt) {
     } else score = dropScore(diff);
     app.calm = score.calm;
 
-    // Gentle nudge after 25 s of tension (or instability), at most every 2.5 minutes.
-    const tense = P.goal === 'steady' ? score.stability < 0.25 : diff < -6;
-    if (tense) {
+    // Gentle nudge after a while off target, at most every 2.5 minutes.
+    // drop: heart rate well above the start; steady: unstable; rise: above the ceiling (or stuck low for 90 s).
+    const off = P.goal === 'rise' ? (score.over ? 'over' : score.low && t > CALIB_SECONDS + 90 ? 'low' : null)
+      : (P.goal === 'steady' ? score.stability < 0.25 : diff < -6) ? 'over' : null;
+    if (off) {
       app.tenseSince ??= t;
-      if (t - app.tenseSince > 25 && t - app.lastNudge > 150) { app.lastNudge = t; msg(P.nudge); }
+      const wait = off === 'over' && P.goal === 'rise' ? 10 : 25;
+      if (t - app.tenseSince > wait && t - app.lastNudge > 150) { app.lastNudge = t; msg(off === 'low' ? P.lowNudge : P.nudge); }
     } else app.tenseSince = null;
 
     app.beatP = clamp(app.beatP + (score.lead * dt) / (P.reach * app.durMin * 60));

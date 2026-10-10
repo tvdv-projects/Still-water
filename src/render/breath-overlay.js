@@ -3,6 +3,7 @@
 //   default: a segmented ring, one arc per phase, proportional to its duration
 //   box:     a light dot travelling along a square, one side per phase
 //   nadi:    left / right half rings that light up for the active nostril
+//   pulse:   a ring of dots, one per short exhale, with the round counter (fire breath)
 
 import { BREATHS, STEP_LABEL, STEP_TO } from '../config/breathing.js';
 import { countdown, currentStep } from '../core/breathing.js';
@@ -30,16 +31,19 @@ export function drawBreath(b, [cx, cy, R], col) {
 
   if (B.shape === 'box') drawBox(b, cx, cy, R, f, col);
   else if (B.shape === 'nadi') drawNadi(step, cx, cy, RR, col);
+  else if (B.shape === 'pulse') drawPulse(b, B, cx, cy, RR, col);
   else drawSegments(B, b.i, cx, cy, RR, f, col);
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = 'rgba(240,234,222,.95)';
   ctx.font = `italic 300 ${Math.round(clamp(R * 0.26, 18, 28))}px Spectral, Georgia, serif`;
-  ctx.fillText(STEP_LABEL[step[0]], cx, cy - RR - (B.shape === 'box' ? R * 0.2 : 0) - 22);
+  const pumping = B.shape === 'pulse' && step[0] !== 'rest';
+  const label = B.shape === 'pulse' ? (pumping ? 'Korte stoten uit' : 'Rustig ademen') : STEP_LABEL[step[0]];
+  ctx.fillText(label, cx, cy - RR - (B.shape === 'box' ? R * 0.2 : 0) - 22);
   ctx.fillStyle = 'rgba(240,234,222,.7)';
   ctx.font = `300 ${Math.round(clamp(R * 0.32, 20, 36))}px Spectral, Georgia, serif`;
-  ctx.fillText(String(countdown(b)), cx, cy + 1);
+  ctx.fillText(String(pumping ? Math.floor(b.i / 2) + 1 : countdown(b)), cx, cy + 1);
   ctx.restore();
 }
 
@@ -87,4 +91,20 @@ function drawSegments(B, current, cx, cy, RR, f, col) {
     }
     ang += span + gap;
   });
+}
+
+function drawPulse(b, B, cx, cy, RR, col) {
+  const done = Math.min(B.pumps, Math.floor(b.i / 2) + (b.i % 2 ? 1 : 0));
+  const resting = b.i >= B.pumps * 2;
+  for (let k = 0; k < B.pumps; k++) {
+    const a = -Math.PI / 2 + (k / B.pumps) * TAU, x = cx + Math.cos(a) * RR, y = cy + Math.sin(a) * RR;
+    const on = resting || k < done;
+    ctx.fillStyle = on ? `rgba(${col},.9)` : `rgba(${col},.18)`;
+    ctx.beginPath(); ctx.arc(x, y, on ? 3.2 : 2.4, 0, TAU); ctx.fill();
+  }
+  if (!resting && b.i % 2 === 0) additive(() => glow(cx, cy, RR * 1.1, col, 0.18 * (1 - b.t / B.steps[b.i][1])));
+  ctx.font = '500 12px Karla, system-ui, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(236,228,214,.6)';
+  ctx.fillText(`ronde ${(b.cycles % B.rounds) + 1} van ${B.rounds}`, cx, cy + RR + 18);
 }

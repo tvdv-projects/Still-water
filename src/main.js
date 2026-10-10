@@ -28,8 +28,11 @@ function frame(now) {
 
   const active = app.state === 'calib' || app.state === 'session';
   if (active) updateSession(dt);
+  const before = breath.cycles;
   const switched = stepBreath(breath, dt);
-  if (switched?.first) msg(BREATHS[switched.key].hint, 5200);
+  if (switched?.first) msg(BREATHS[switched.key].hint, Math.max(5200, BREATHS[switched.key].hint.length * 55));
+  const rounds = breath.key && BREATHS[breath.key].rounds;
+  if (rounds && breath.cycles !== before && breath.cycles % rounds === 0) msg(`${rounds} rondes gedaan. Adem rustig verder, of ga nog een keer door.`, 5000);
 
   drawFrame(dt);
   updateHud(dt);

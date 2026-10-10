@@ -1,6 +1,6 @@
-// The four session profiles. Each profile decides:
+// The session profiles. Each profile decides:
 //  - which scene and music style are used,
-//  - the goal: 'drop' (lower the heart rate) or 'steady' (keep it stable),
+//  - the goal: 'drop' (lower the heart rate), 'steady' (keep it stable) or 'rise' (raise it into a band),
 //  - the binaural beat: `start(hr)` picks a starting frequency from the current
 //    heart rate, after which the beat is led towards `target` over `reach` of the session,
 //  - which breathing techniques are offered (keys of BREATHS in ./breathing.js).
@@ -75,6 +75,25 @@ export const PROFILES = {
     unit: (n) => `${n} van de 7 delen van de cirkel.`,
     lines: ['De vlam staat stil.', 'Eén punt. Verder niets.', 'De cirkel groeit.', 'Halverwege. Blijf bij de vlam.', 'Gelijkmatig. Goed zo.', 'Bijna rond.', 'De cirkel is gesloten.'],
     nudge: 'Kijk naar de vlam. Laat de rest even.',
+  },
+  energie: {
+    name: 'Energie',
+    scene: 'campfire',
+    style: 'bright',
+    goal: 'rise',
+    // Lower heart rate → lower start; the beat is then led upwards.
+    start: (hr) => clamp(8 + (hr - 55) * 0.1, 8, 12),
+    target: 18,
+    reach: 0.5,
+    desc: 'Een kampvuur in het bos. Hoe meer je opwarmt, hoe hoger het vuur oplaait. Het doel is 5 tot 12 slagen boven je beginwaarde: opwekken, niet opjagen. Binaural omhoog naar 18 Hz, heldere ritmische muziek.',
+    breaths: ['longIn', 'stairs', 'fire'],
+    accent: '255,150,80',
+    title: 'Het vuur brandt',
+    unit: (n) => `${n} van de 7 houtblokken vatten vlam.`,
+    lines: ['Het eerste blok vat vlam.', 'De vonken komen los.', 'Je warmt op.', 'Halverwege. Het vuur leeft.', 'Hoger. Goed zo.', 'Bijna alles brandt.', 'Het vuur laait op.'],
+    nudge: 'Rustig aan. Het vuur brandt al, harder hoeft niet.',
+    lowNudge: 'Ga rechtop zitten, schouders los. Probeer de vuurademhaling.',
+    band: [5, 12],
   },
 };
 

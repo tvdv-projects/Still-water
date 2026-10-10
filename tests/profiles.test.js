@@ -15,21 +15,26 @@ describe('profiles', () => {
       });
       it('has a known music style and scene', () => {
         assert.ok(STYLES[P.style]);
-        assert.ok(['lake', 'dawn', 'candle'].includes(P.scene));
+        assert.ok(['lake', 'dawn', 'candle', 'campfire'].includes(P.scene));
       });
       it('has a message for every progress step', () => {
         assert.equal(P.lines.length, STEPS);
       });
-      it('starts the beat above its target for any plausible heart rate', () => {
-        for (const hr of [45, 60, 75, 100]) assert.ok(P.start(hr) > P.target, `${key} at ${hr} bpm`);
+      it('leads the beat in the direction of the goal for any plausible heart rate', () => {
+        for (const hr of [45, 60, 75, 100]) {
+          if (P.goal === 'rise') assert.ok(P.start(hr) < P.target, `${key} at ${hr} bpm`);
+          else assert.ok(P.start(hr) > P.target, `${key} at ${hr} bpm`);
+        }
       });
       it('starts higher when the heart rate is higher', () => {
         assert.ok(P.start(90) >= P.start(60));
       });
     });
   }
-  it('Volle focus aims for a steady heart rate, the others for a drop', () => {
+  it('Volle focus aims for a steady heart rate, Energie for a rise, the others for a drop', () => {
     assert.equal(PROFILES.volle.goal, 'steady');
+    assert.equal(PROFILES.energie.goal, 'rise');
+    assert.deepEqual(PROFILES.energie.band, [5, 12]);
     ['slaap', 'rust', 'focus'].forEach((k) => assert.equal(PROFILES[k].goal, 'drop'));
   });
   it('binaural targets go from deep (sleep) to alert (full focus)', () => {

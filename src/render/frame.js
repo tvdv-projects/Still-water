@@ -3,11 +3,12 @@
 import { app, breath, profile } from '../state.js';
 import { drawBreath } from './breath-overlay.js';
 import { ctx, view } from './context.js';
+import * as campfire from './scenes/campfire.js';
 import * as candle from './scenes/candle.js';
 import * as dawn from './scenes/dawn.js';
 import * as lake from './scenes/lake.js';
 
-const SCENES = { lake, dawn, candle };
+const SCENES = { lake, dawn, candle, campfire };
 const scene = () => SCENES[profile().scene];
 
 /** Reset all scenes so a new session starts from darkness / unlit lanterns. */

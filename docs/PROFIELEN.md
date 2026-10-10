@@ -28,6 +28,12 @@ Elk profiel staat in `src/config/profiles.js` en bepaalt scène, muziekstijl, do
 - **Binaural:** van 16–20 Hz naar 14 Hz (laag bèta).
 - **Doel:** hartslag **stabiel**, niet per se lager. Je scoort als je binnen ±1,5 slag van je beginwaarde blijft en de schommeling over 30 seconden klein is. Voor scherp nadenken wil je niet wegzakken.
 
+### Energie
+- **Scène:** een kampvuur in een bos. Het vuur is een deeltjessysteem: hoe meer je opwarmt, hoe hoger en feller het oplaait. Elke stap voortgang laat een nieuw houtblok vlam vatten, met een regen van vonken. De bomen rondom vangen het licht. Bij de vuurademhaling flakkert het vuur op met elke uitademing.
+- **Muziek (`bright`):** heldere akkoorden in D majeur, een snel herhalend toonpatroon, knisperend vuur en een zacht shakergeluid. De hartslagpuls slaat 6 slagen per minuut sneller dan je eigen hartslag, als een duwtje omhoog.
+- **Binaural:** start tussen 8 en 12 Hz (lager bij een lage hartslag) en gaat **omhoog** naar 18 Hz (bèta).
+- **Doel:** hartslag **5 tot 12 slagen boven je beginwaarde**. Daaronder bouw je langzaam voortgang op. Tussen +12 en +15 neemt de beloning af, en boven +15 is er geen voortgang meer, schuift de binaural terug en verschijnt na 10 seconden een rustig berichtje. Het spel beloont opwekken, niet opjagen. Blijft je hartslag anderhalve minuut laag, dan stelt het een houding of de vuurademhaling voor.
+
 ## Hoe de binaural beat je hartslag volgt
 
 1. **Tijdens de rustmeting** rekent `profile.start(hr)` live een startfrequentie uit: hoe hoger je hartslag, hoe hoger de zweving. Het idee is eerst aansluiten bij waar je bent, en dan langzaam meenemen.
@@ -37,6 +43,8 @@ Elk profiel staat in `src/config/profiles.js` en bepaalt scène, muziekstijl, do
    - blijft je hartslag gelijk, dan zakt de zweving rustig door;
    - stijgt je hartslag duidelijk, dan wacht de zweving of schuift hij terug.
 4. Het doel wordt bij een gemiddeld verloop bereikt na 40–75% van de sessie (`reach`), daarna blijft hij daar.
+
+Bij **Energie** werkt het in spiegelbeeld: de zweving begint laag en gaat omhoog. Een stijgende hartslag versnelt dat, maar boven de bovengrens schuift hij juist terug.
 
 De zweving zit in de muziek: elke drone-stem klinkt in je rechteroor een paar hertz hoger dan in je linker. Daarvoor heb je oordopjes of een koptelefoon nodig, en moet Ruimtelijke audio uit staan.
 
@@ -57,7 +65,11 @@ Gedefinieerd in `src/config/breathing.js`. Ze staan standaard uit; zet ze aan me
 | **Wisselende neusgaten** | 4 in links · 4 uit rechts · 4 in rechts · 4 uit links | Ontspannen focus, Volle focus | vraagt aandacht zonder inspanning; goed als concentratie-oefening |
 | **Gelijke ademhaling** | 4 in · 4 uit | Volle focus | rustig maar niet slaperig |
 
-Activerende technieken (snel ademen, Wim Hof) zijn bewust weggelaten: die verhogen de hartslag en kunnen duizelig maken.
+| **Lange inademing** | 6 in · 3 uit | Energie | een langere inademing dan uitademing activeert in plaats van te kalmeren |
+| **Trappetjes** | 3 × 1 tel snuiven in · 2 krachtig uit | Energie | de korte, opbouwende inademing werkt wekkend |
+| **Vuurademhaling** (lichte versie) | 20 korte stoten uit · 20 s rustig ademen, 3 rondes | Energie | actieve buikuitademingen (kapalabhati) geven een snelle oppepper |
+
+Over de vuurademhaling: het is een lichte versie met korte rondes en rustpauzes, zonder adem inhouden. Bij de eerste keer verschijnt een waarschuwing: doe het zittend, nooit in water of tijdens het rijden, en stop als je duizelig wordt. Na drie rondes meldt het spel dat je klaar bent; je kunt daarna rustig verder ademen of nog een keer beginnen. Echte hyperventilatie-technieken zoals Wim Hof zitten er bewust niet in.
 
 ### Visuele gids
 
@@ -65,5 +77,6 @@ Activerende technieken (snel ademen, Wim Hof) zijn bewust weggelaten: die verhog
 - **Segmenten:** de buitenring is verdeeld in fases, in verhouding tot hun duur; de lopende fase vult zich.
 - **Box:** een lichtpunt loopt langs een vierkant, één zijde per fase.
 - **Wisselende neusgaten:** de linker of rechter halve ring licht op.
+- **Vuurademhaling:** een krans van 20 stippen telt de stoten, het midden telt mee, eronder staat de ronde. Tijdens de rust telt het af.
 
 Het ademgeluid (gefilterde ruis) zwelt aan bij inademen en zakt bij uitademen. Het heeft een eigen schuifje in het geluidspaneel.

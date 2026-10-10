@@ -35,6 +35,30 @@ export function steadyScore(diff, sd) {
   return { calm: s, rate: s * 1.1, lead: clamp(0.2 + s, 0, 1.2), stability: s };
 }
 
+/** Heart rate above baseline that counts as "in the zone" for 'rise' profiles, and the hard ceiling. */
+export const RISE_BAND = [5, 12];
+export const RISE_CEILING = 15;
+
+/**
+ * Score for 'rise' profiles (Energie). `rise` = current − baseline heart rate.
+ * Full progress inside the band, ramping in from +1 and out to the ceiling. Above the ceiling there is no
+ * progress and the binaural beat is pulled back, so the game never rewards overdoing it.
+ */
+export function riseScore(rise, [lo, hi] = RISE_BAND, ceiling = RISE_CEILING) {
+  let rate;
+  if (rise <= 1) rate = 0;
+  else if (rise < lo) rate = (rise - 1) / (lo - 1);
+  else if (rise <= hi) rate = 1;
+  else rate = clamp((ceiling - rise) / (ceiling - hi));
+  return {
+    calm: clamp((rise + 2) / (hi + 2)), // here: visual energy of the scene
+    rate,
+    lead: rise > ceiling ? -0.4 : clamp(0.5 + rise * 0.1, -0.2, 1.4),
+    over: rise > ceiling,
+    low: rise < 1,
+  };
+}
+
 /** Population standard deviation. */
 export function stdDev(values) {
   if (values.length < 2) return 0;
@@ -56,8 +80,12 @@ export function summarize(samples, baseline, now, calib = CALIB_SECONDS) {
   const last = sess.filter((s) => s.t > now - 60);
   const avg = (arr) => arr.reduce((a, s) => a + s.hr, 0) / arr.length;
   const end = last.length ? avg(last) : sess.length ? sess[sess.length - 1].hr : baseline;
-  let min = Infinity;
-  for (let i = 0; i < sess.length; i++) min = Math.min(min, avg(sess.slice(Math.max(0, i - 9), i + 1)));
+  let min = Infinity, max = -Infinity;
+  for (let i = 0; i < sess.length; i++) {
+    const w = avg(sess.slice(Math.max(0, i - 9), i + 1));
+    min = Math.min(min, w);
+    max = Math.max(max, w);
+  }
   const meanAbsDev = sess.length ? sess.reduce((a, s) => a + Math.abs(s.hr - baseline), 0) / sess.length : 0;
-  return { end, min: Number.isFinite(min) ? min : null, drop: baseline - end, meanAbsDev };
+  return { end, min: Number.isFinite(min) ? min : null, max: Number.isFinite(max) ? max : null, drop: baseline - end, meanAbsDev };
 }
