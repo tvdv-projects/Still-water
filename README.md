@@ -19,13 +19,15 @@ Een rustgevende wereld die reageert op je hartslag. Kies een profiel (slaap, ont
 
 - **Muziek die je hartslag volgt.** De drone wordt helderer en iets hoger als je hartslag stijgt, en donkerder en dieper als hij daalt.
 - **Ademhalingsoefeningen**, drie per profiel, met een visuele gids en ademgeluid. Ze staan standaard uit en kunnen tijdens de sessie wisselen.
-- **Testmodus** met een gesimuleerde hartslag, zodat je alles zonder horloge kunt proberen.
+- **Live HRV en coherentie** met een borstband (bijvoorbeeld Garmin HRM 200): de tijd tussen hartslagen geeft je HRV, en tijdens de ademhalingsoefeningen zie je hoe sterk je hart je ademhaling volgt.
+- **Slaapstand** na een Slaap-sessie: het scherm wordt zwart en het geluid sterft in 15 minuten weg. Tik om wakker te worden.
+- **Testmodus** met een gesimuleerde hartslag (inclusief borstband-data), zodat je alles zonder horloge kunt proberen.
 
 Alles draait in de browser. Er is geen server en er gaat geen data het apparaat uit; je sessiegeschiedenis staat alleen in de lokale opslag van je browser.
 
 ## Gebruiken
 
-1. Zet op je Garmin **Hartslag uitzenden** aan.
+1. Doe je borstband om (maak de elektroden nat), of zet op je Garmin-horloge **Hartslag uitzenden** aan. Met de borstband krijg je er HRV en coherentie bij.
 2. Open de site:
    - op de **iPhone in Bluefy** (Safari en Chrome op iOS ondersteunen geen Web Bluetooth),
    - op **Android of desktop in Chrome of Edge**.

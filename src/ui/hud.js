@@ -58,6 +58,14 @@ export function updateHud(dt) {
   } else d.textContent = '';
   if (performance.now() - app.lastSampleAt > 8000 && app.source === 'ble' && app.state !== 'done') d.textContent = 'geen signaal…';
 
+  const hrv = $('hrv');
+  hrv.hidden = !app.hasRR || app.state === 'intro';
+  if (!hrv.hidden) {
+    const parts = [app.rmssd == null ? 'HRV meten…' : `HRV ${Math.round(app.rmssd)} ms`];
+    if (app.coherence != null) parts.push(`coherentie ${Math.round(app.coherence * 100)}%`);
+    hrv.textContent = parts.join(' · ');
+  }
+
   if (app.state === 'session') {
     const left = Math.max(0, CALIB_SECONDS + app.durMin * 60 - t);
     $('timer').textContent = `${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, '0')} · ${app.litCount}/${STEPS} · ${P.name}` + hz();

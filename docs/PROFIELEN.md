@@ -9,6 +9,7 @@ Elk profiel staat in `src/config/profiles.js` en bepaalt scène, muziekstijl, do
 - **Muziek (`deep`):** lage, donkere akkoorden, geen hoge tikjes, water dat als trage golven aanzwelt. Sterft de laatste twee minuten weg, zonder slotakkoord.
 - **Binaural:** start tussen 7 en 12 Hz, afhankelijk van je hartslag, en zakt naar 2,5 Hz (deltagebied, geassocieerd met diepe slaap).
 - **Doel:** hartslag zo ver mogelijk omlaag.
+- **Einde:** geen overzicht dat opspringt. Twee minuten voor het einde zakt het geluid naar een zacht niveau en verschijnt een melding. Na afloop vervaagt alles in een minuut naar volledig zwart (op een OLED-scherm vrijwel zonder stroomverbruik), en sterft het geluid in 15 minuten weg. Het scherm blijft aan, omdat iOS een webpagina pauzeert zodra je telefoon vergrendelt. Tik op het scherm om wakker te worden en het overzicht te zien.
 
 ### Ontspanning
 - **Scène:** het nachtelijke meer. De mist trekt op, het water wordt stiller, de lantaarns gaan aan en er verschijnen vuurvliegjes.
@@ -80,3 +81,12 @@ Over de vuurademhaling: het is een lichte versie met korte rondes en rustpauzes,
 - **Vuurademhaling:** een krans van 20 stippen telt de stoten, het midden telt mee, eronder staat de ronde. Tijdens de rust telt het af.
 
 Het ademgeluid (gefilterde ruis) zwelt aan bij inademen en zakt bij uitademen. Het heeft een eigen schuifje in het geluidspaneel.
+
+## HRV en coherentie (borstband)
+
+Een borstband zoals de Garmin HRM 200 stuurt behalve je hartslag ook de tijd tussen elke twee hartslagen (RR-intervallen). Een horloge dat zijn hartslag uitzendt doet dat meestal niet. Ontvangt Stil Water die gegevens, dan verschijnt onderin een extra regel.
+
+- **HRV (RMSSD, in ms):** de variatie tussen opeenvolgende hartslagen over de laatste minuut. Een hogere waarde betekent doorgaans meer ontspanning. De beginwaarde komt uit de rustmeting; het overzicht toont begin → einde.
+- **Coherentie (0–100%):** alleen tijdens een ademhalingsoefening. Bij rustig ademen versnelt je hart bij het inademen en vertraagt het bij het uitademen. Coherentie meet hoe goed je hartslag de ademgids volgt (correlatie over de laatste minuut, met maximaal 5 seconden vertraging). Bij resonantieademhaling is een hoge coherentie precies het doel. De ademring krijgt een sterkere gloed naarmate de coherentie stijgt, en het overzicht toont het gemiddelde.
+
+Ruis filteren: onmogelijke intervallen (sneller dan 200 of trager dan 30 slagen per minuut) en sprongen van meer dan 20% ten opzichte van de vorige slag worden genegeerd. Die ontstaan door gemiste slagen of slecht contact. Maak de elektroden nat; in een rustige sessie zweet je niet, en een droge band geeft ruis.

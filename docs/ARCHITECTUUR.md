@@ -21,6 +21,7 @@ src/
   core/                 pure logica, getest
     math.js             clamp, lerp, easing, kleurhulpjes
     scoring.js          hartslag → rust, voortgang, binaural-tempo; samenvatting
+    hrv.js              RR-intervallen: filteren, RMSSD, coherentie met de ademgids
     breathing.js        toestandsmachine van de ademgids
     storage.js          localStorage met fallback
   heart-rate/
@@ -66,6 +67,8 @@ stateDiagram-v2
   intro --> calib: verbinden of testmodus
   calib --> session: na 60 s, gemiddelde van seconde 15–60 = beginwaarde
   session --> done: tijd om, of twee keer op Stop
+  session --> sleeping: Slaap, tijd om
+  sleeping --> done: tik op het scherm
   calib --> intro: Stop
   done --> intro: Nog een sessie
 ```
@@ -94,6 +97,7 @@ iOS: geluid start alleen na een tik. `audio.unlock()` wordt daarom synchroon in 
 
 ## Mogelijke vervolgstappen
 
+- Een HRV-gestuurd doel voor de rustprofielen (voortgang uit stijgende HRV in plaats van alleen een dalende hartslag).
+
 - Een PWA-manifest en service worker, zodat de app offline en als icoon op het beginscherm werkt (Bluefy ondersteunt dat beperkt).
-- Tijd tussen hartslagen (RR-intervallen) uitlezen van een borstband, voor live HRV en adem-detectie.
 - Sessiegeschiedenis exporteren of koppelen aan het gezondheidsdashboard.

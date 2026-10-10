@@ -1,6 +1,6 @@
 // Test mode: a simulated heart rate, either drifting down automatically or set with a slider.
 
-import { app, profile, recordSample } from '../state.js';
+import { app, breath, profile, recordRR, recordSample } from '../state.js';
 import { $ } from '../ui/dom.js';
 import { setStatus } from '../ui/status.js';
 
@@ -17,6 +17,15 @@ function tick() {
   }
   hr += (target - hr) * 0.18 + (Math.random() - 0.5) * 1.6;
   recordSample(Math.round(hr));
+  // Simulated beat-to-beat intervals, as a chest strap would send them. The heart speeds up on the
+  // inhale and slows on the exhale: strongly with the breathing guide on, faintly otherwise.
+  const rr = [], beats = Math.max(1, Math.round(hr / 60));
+  for (let k = 0; k < beats; k++) {
+    const sec = performance.now() / 1000 + k / beats;
+    const rsa = breath.on && breath.key ? 6 * (breath.level - 0.5) : 1.5 * Math.sin(sec * 1.25);
+    rr.push(Math.round(60000 / (hr + rsa + (Math.random() - 0.5) * 1.2)));
+  }
+  recordRR(rr);
 }
 
 export function initSimulator() {

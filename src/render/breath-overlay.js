@@ -14,15 +14,16 @@ import { additive, ctx, glow } from './context.js';
  * @param {object} b breath state (see core/breathing.js)
  * @param {[number, number, number]} anchor centre x, centre y and base radius
  * @param {string} col accent colour "r,g,b"
+ * @param {number|null} coh heart–breath coherence 0..1 (chest strap only); a stronger halo when high
  */
-export function drawBreath(b, [cx, cy, R], col) {
+export function drawBreath(b, [cx, cy, R], col, coh = null) {
   if (b.vis < 0.01 || !b.key) return;
   const B = BREATHS[b.key], step = currentStep(b), level = b.level;
   const r = R * (0.4 + 0.6 * level), f = clamp(b.t / step[1]), RR = R * 1.15;
 
   ctx.save();
   ctx.globalAlpha = b.vis;
-  additive(() => glow(cx, cy, r * 1.45, col, 0.08 + 0.14 * level));
+  additive(() => glow(cx, cy, r * (1.45 + (coh ?? 0) * 0.6), col, 0.08 + 0.14 * level + (coh ?? 0) * 0.12));
   ctx.strokeStyle = `rgba(${col},.8)`; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.stroke();
   ctx.strokeStyle = `rgba(${col},.18)`; ctx.setLineDash([2, 6]);
@@ -44,6 +45,11 @@ export function drawBreath(b, [cx, cy, R], col) {
   ctx.fillStyle = 'rgba(240,234,222,.7)';
   ctx.font = `300 ${Math.round(clamp(R * 0.32, 20, 36))}px Spectral, Georgia, serif`;
   ctx.fillText(String(pumping ? Math.floor(b.i / 2) + 1 : countdown(b)), cx, cy + 1);
+  if (coh != null && B.shape !== 'pulse') {
+    ctx.font = '500 12px Karla, system-ui, sans-serif';
+    ctx.fillStyle = `rgba(236,228,214,${0.45 + 0.45 * coh})`;
+    ctx.fillText(`coherentie ${Math.round(coh * 100)}%`, cx, cy + RR + (B.shape === 'box' ? R * 0.2 : 0) + 20);
+  }
   ctx.restore();
 }
 

@@ -2,25 +2,41 @@
 // Works with any device that broadcasts it, e.g. a Garmin watch with "Broadcast heart rate" on,
 // or a chest strap. Requires Web Bluetooth: Chrome on desktop/Android, or Bluefy on iOS.
 
-import { recordSample } from '../state.js';
+import { recordRR, recordSample } from '../state.js';
 import { $ } from '../ui/dom.js';
 import { setStatus } from '../ui/status.js';
 
 /**
  * Parse a Heart Rate Measurement characteristic value (0x2A37).
- * Bit 0 of the flags byte says whether the value is uint8 or uint16.
+ * Flags byte: bit 0 = heart rate is uint16 (else uint8), bit 3 = energy expended (uint16) present,
+ * bit 4 = one or more RR intervals (uint16, in 1/1024 s) follow. Chest straps send RR intervals;
+ * watches broadcasting heart rate usually do not.
  * @param {DataView} v
+ * @returns {{hr: number, rr: number[]}} heart rate in bpm and RR intervals in ms
  */
-export function parseHeartRate(v) {
+export function parseMeasurement(v) {
   const flags = v.getUint8(0);
-  return flags & 1 ? v.getUint16(1, true) : v.getUint8(1);
+  let i = 1;
+  const hr = flags & 1 ? v.getUint16(i, true) : v.getUint8(i);
+  i += flags & 1 ? 2 : 1;
+  if (flags & 0x08) i += 2;
+  const rr = [];
+  if (flags & 0x10) for (; i + 1 < v.byteLength; i += 2) rr.push(Math.round((v.getUint16(i, true) * 1000) / 1024));
+  return { hr, rr };
 }
+
+/** Heart rate only (kept for callers that do not need RR intervals). */
+export const parseHeartRate = (v) => parseMeasurement(v).hr;
 
 async function attach(device) {
   const server = await device.gatt.connect();
   const service = await server.getPrimaryService('heart_rate');
   const ch = await service.getCharacteristic('heart_rate_measurement');
-  ch.addEventListener('characteristicvaluechanged', (e) => recordSample(parseHeartRate(e.target.value)));
+  ch.addEventListener('characteristicvaluechanged', (e) => {
+    const { hr, rr } = parseMeasurement(e.target.value);
+    recordSample(hr);
+    if (rr.length) recordRR(rr);
+  });
   await ch.startNotifications();
   if (!device._wired) {
     device._wired = true;

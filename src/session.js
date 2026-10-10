@@ -1,4 +1,5 @@
-// Session lifecycle: intro → calibration (60 s) → session → summary.
+// Session lifecycle: intro → calibration (60 s) → session → summary
+// (Slaap: → sleeping, a black screen with fading sound, until you tap → summary).
 //
 // During calibration the binaural beat follows the live heart rate, and the average
 // of seconds 15–60 becomes the baseline. During the session the profile's scoring
@@ -7,6 +8,7 @@
 
 import { audio } from './audio/engine.js';
 import { PROFILES } from './config/profiles.js';
+import { cleanRR, coherence, rmssd } from './core/hrv.js';
 import { clamp, lerp, smoothing } from './core/math.js';
 import { beatAt, CALIB_SECONDS, dropScore, needPerStep, riseScore, stdDev, steadyScore, STEPS, summarize } from './core/scoring.js';
 import { store } from './core/storage.js';
@@ -17,13 +19,16 @@ import { $, nl } from './ui/dom.js';
 import { msg } from './ui/messages.js';
 import { CONNECT_NOTE, setStatus } from './ui/status.js';
 
-let sdTimer = 0;
+let sdTimer = 0, hrvTimer = 0, breathTimer = 0, sleepT0 = 0, rrAnnounced = false;
 
 function resetProgress() {
   Object.assign(app, {
     samples: [], baseline: null, hrS: null, points: 0, litCount: 0, progVis: 0,
     beatP: 0, fading: false, sleepDim: 0, tenseSince: null, lastNudge: -999, stability: 0.5, sd: 0,
+    hasRR: false, rr: [], beats: [], breathLog: [], beatClock: 0, rmssd: null, rmssdBase: null, coherence: null, coherenceLog: [],
   });
+  rrAnnounced = false;
+  document.body.classList.remove('sleeping');
   resetScenes();
   resetBreathBar();
 }
@@ -58,10 +63,37 @@ export function finish(early = false) {
   $('stop').hidden = true;
   $('breathBar').hidden = true;
   breath.on = false;
-  audio.fade(0, early ? 4 : 20);
-  app.state = 'done';
-
   const P = profile();
+  buildSummary(P);
+  if (P.fadeOut && !early) {
+    // Slaap: no summary popping up. The screen fades to black and the sound dies away over 15 minutes.
+    app.state = 'sleeping';
+    sleepT0 = performance.now();
+    document.body.classList.add('sleeping');
+    audio.fade(0, 900);
+    return;
+  }
+  app.state = 'done';
+  audio.fade(0, early ? 4 : 20);
+  $('summary').classList.remove('gone');
+  if (!P.fadeOut && !early) audio.bloom();
+}
+
+/** Tap during sleep mode: back to a normal screen with the summary. */
+export function wake() {
+  if (app.state !== 'sleeping') return;
+  app.state = 'done';
+  document.body.classList.remove('sleeping');
+  audio.fade(0, 3);
+  $('summary').classList.remove('gone');
+}
+
+/** Called every frame in sleep mode: dim to fully black over one minute. */
+export function updateSleep() {
+  app.sleepDim = Math.min(1, 0.45 + ((performance.now() - sleepT0) / 60000) * 0.55);
+}
+
+function buildSummary(P) {
   const s = summarize(app.samples, app.baseline, sessionClock());
   $('sTitle').textContent = P.title;
   $('sBase').textContent = Math.round(app.baseline);
@@ -96,14 +128,43 @@ export function finish(early = false) {
         return `<span>${d} · ${PROFILES[h.p] ? PROFILES[h.p].name + ' · ' : ''}${h.b} → ${h.e} (${h.e <= h.b ? '−' : '+'}${Math.abs(h.b - h.e)})</span>`;
       }).join('')
     : '';
-  $('summary').classList.remove('gone');
-  if (!P.fadeOut && !early) audio.bloom();
+  const coh = app.coherenceLog.length ? app.coherenceLog.reduce((a, b) => a + b, 0) / app.coherenceLog.length : null;
+  const hrvEnd = rmssd(cleanRR(app.rr.filter((r) => r.t > sessionClock() - 120).map((r) => r.ms)));
+  const parts = [];
+  if (app.rmssdBase != null && hrvEnd != null) parts.push(`HRV ${Math.round(app.rmssdBase)} → ${Math.round(hrvEnd)} ms`);
+  if (coh != null) parts.push(`gemiddelde coherentie tijdens de ademhaling ${Math.round(coh * 100)}%`);
+  $('sHrv').textContent = parts.join(' · ');
+  $('sHrv').hidden = !parts.length;
+}
+
+/** HRV (RMSSD over the last minute) and, while the breathing guide is on, heart–breath coherence. */
+function updateHrv(dt, t) {
+  breathTimer -= dt;
+  if (breath.on && breath.key) {
+    if (breathTimer <= 0) { breathTimer = 0.1; app.breathLog.push({ t, v: breath.level }); }
+    if (app.breathLog.length > 1500) app.breathLog.splice(0, 300);
+  } else if (app.breathLog.length) { app.breathLog = []; app.coherence = null; }
+
+  if (!app.hasRR) return;
+  if (!rrAnnounced) {
+    rrAnnounced = true;
+    if (app.source !== 'sim') msg('Je borstband stuurt de tijd tussen hartslagen. HRV en coherentie staan aan.', 5000);
+  }
+  hrvTimer -= dt;
+  if (hrvTimer > 0) return;
+  hrvTimer = 1;
+  app.rmssd = rmssd(cleanRR(app.rr.filter((r) => r.t > t - 60).map((r) => r.ms)));
+  if (app.breathLog.length) {
+    app.coherence = coherence(app.beats, app.breathLog, t);
+    if (app.coherence != null && app.state === 'session') app.coherenceLog.push(app.coherence);
+  }
 }
 
 /** Called every frame while calibrating or in a session. */
 export function updateSession(dt) {
   if (app.latestHr != null) app.hrS = app.hrS == null ? app.latestHr : app.hrS + (app.latestHr - app.hrS) * smoothing(dt, 6);
   const t = sessionClock(), P = profile();
+  updateHrv(dt, t);
 
   if (app.state === 'calib') {
     app.calm = lerp(app.calm, 0.3, dt * 0.5);
@@ -113,6 +174,7 @@ export function updateSession(dt) {
       if (cs.length >= 8) {
         app.baseline = cs.reduce((a, s) => a + s.hr, 0) / cs.length;
         app.beatStart = P.start(app.baseline);
+        app.rmssdBase = rmssd(cleanRR(app.rr.filter((r) => r.t > 15).map((r) => r.ms)));
         app.state = 'session';
         msg(P.goal === 'steady' ? 'Klaar. Kijk naar de vlam.' : 'Klaar. Laat het nu zijn werk doen.');
       } else if (t > CALIB_SECONDS + 30 && !app.samples.length) {
@@ -153,7 +215,11 @@ export function updateSession(dt) {
 
     const end = CALIB_SECONDS + app.durMin * 60;
     if (P.fadeOut) {
-      if (!app.fading && t >= end - 120) { app.fading = true; audio.fade(0, 40); }
+      if (!app.fading && t >= end - 120) {
+        app.fading = true;
+        audio.fade(0.35, 90);
+        msg('Het scherm wordt zo zwart. Tik erop als je wakker bent.', 6000);
+      }
       app.sleepDim = clamp((t - (end - 120)) / 120) * 0.45;
     }
 

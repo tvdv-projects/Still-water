@@ -24,6 +24,12 @@ export function progressStep(i) {
 export function drawFrame(dt) {
   const { W, H } = view;
   const P = profile();
+  // Fully black in sleep mode: stop drawing the scene to save power.
+  if (app.state === 'sleeping' && app.sleepDim >= 0.999) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+    return;
+  }
   scene().draw({
     dt,
     time: app.time,
@@ -42,10 +48,10 @@ export function drawFrame(dt) {
   if (P.fadeOut) {
     const d = app.progVis * 0.35 + app.sleepDim;
     if (d > 0.01) {
-      ctx.fillStyle = `rgba(0,0,4,${Math.min(0.8, d)})`;
+      ctx.fillStyle = `rgba(0,0,4,${Math.min(app.state === 'sleeping' ? 1 : 0.8, d)})`;
       ctx.fillRect(0, 0, W, H);
     }
   }
 
-  drawBreath(breath, scene().anchor(), P.accent);
+  drawBreath(breath, scene().anchor(), P.accent, app.coherence);
 }

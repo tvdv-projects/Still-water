@@ -6,7 +6,7 @@ import { currentStep, stepBreath } from './core/breathing.js';
 import { initSimulator } from './heart-rate/simulator.js';
 import { resize } from './render/context.js';
 import { drawFrame } from './render/frame.js';
-import { updateSession } from './session.js';
+import { updateSession, updateSleep } from './session.js';
 import { app, breath } from './state.js';
 import { initBreathBar } from './ui/breath-bar.js';
 import { initControls } from './ui/controls.js';
@@ -28,6 +28,7 @@ function frame(now) {
 
   const active = app.state === 'calib' || app.state === 'session';
   if (active) updateSession(dt);
+  else if (app.state === 'sleeping') updateSleep();
   const before = breath.cycles;
   const switched = stepBreath(breath, dt);
   if (switched?.first) msg(BREATHS[switched.key].hint, Math.max(5200, BREATHS[switched.key].hint.length * 55));

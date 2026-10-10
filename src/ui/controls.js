@@ -6,7 +6,7 @@ import { store } from '../core/storage.js';
 import { connectHeartRate } from '../heart-rate/bluetooth.js';
 import { startSimulator } from '../heart-rate/simulator.js';
 import { resetScenes } from '../render/frame.js';
-import { begin, finish, toIntro } from '../session.js';
+import { begin, finish, toIntro, wake } from '../session.js';
 import { app, profile } from '../state.js';
 import { CALIB_SECONDS } from '../core/scoring.js';
 import { buildChips } from './breath-bar.js';
@@ -101,6 +101,7 @@ function initSoundPanel() {
     });
   }
   $('c').addEventListener('pointerdown', () => {
+    if (app.state === 'sleeping') wake();
     $('mix').hidden = true;
     $('snd').setAttribute('aria-expanded', 'false');
   });

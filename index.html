@@ -42,7 +42,7 @@
 
 <div class="readout" id="readout" hidden>
   <div class="bpm"><b id="hr">--</b><span>slagen/min</span></div>
-  <div class="delta" id="delta"></div>
+  <div class="meta"><div class="delta" id="delta"></div><div class="hrv" id="hrv" hidden></div></div>
   <canvas id="spark" width="264" height="80"></canvas>
 </div>
 
@@ -93,6 +93,7 @@
       <div class="stat"><span id="sMinL">Laagste</span><b id="sMin">--</b></div>
     </div>
     <p id="sLamps"></p>
+    <p class="note" id="sHrv" hidden></p>
     <div class="hist" id="sHist"></div>
     <button id="again" class="primary" type="button">Nog een sessie</button>
   </div>

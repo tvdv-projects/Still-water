@@ -42,7 +42,9 @@ button[aria-pressed="true"]{background:rgba(236,228,214,.16);border-color:rgba(2
 .bpm{display:flex;flex-direction:column;gap:2px}
 .bpm b{font-family:var(--display);font-weight:400;font-size:2.4rem;line-height:1;font-variant-numeric:tabular-nums}
 .bpm span{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim)}
-.delta{font-size:.82rem;color:var(--ink-dim);font-variant-numeric:tabular-nums;padding-bottom:4px}
+.meta{display:flex;flex-direction:column;gap:3px;padding-bottom:4px}
+.delta{font-size:.82rem;color:var(--ink-dim);font-variant-numeric:tabular-nums}
+.hrv{font-size:.76rem;letter-spacing:.03em;color:var(--ink-dim);font-variant-numeric:tabular-nums}
 .delta.down{color:var(--calm)}
 #spark{width:132px;height:40px;display:block}
 
@@ -90,3 +92,8 @@ button[aria-pressed="true"]{background:rgba(236,228,214,.16);border-color:rgba(2
 .stat span{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-dim)}
 .stat.hl b{color:var(--calm)}
 .hist{font-size:.84rem;color:var(--ink-dim);font-variant-numeric:tabular-nums;display:flex;flex-direction:column;gap:3px}
+
+/* Sleep mode (Slaap, after the session): everything fades away, leaving a black screen. */
+body.sleeping .hud,body.sleeping .readout,body.sleeping .breath,body.sleeping .sim,body.sleeping .mix{opacity:0;pointer-events:none;transition:opacity 20s ease}
+body.sleeping .msg{opacity:0!important;transition:opacity 4s ease}
+body.sleeping #c{cursor:none}
