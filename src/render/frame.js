@@ -21,6 +21,19 @@ export function progressStep(i) {
   scene().progress(i);
 }
 
+// Messages appear in a fixed band near the top (#msg). Keep the breathing guide's label below that band
+// so the two never overlap, whatever the screen height or safe-area insets are.
+let msgBandBottom = 0, msgCheck = 0;
+function clearOfMessages([cx, cy, R]) {
+  if (--msgCheck <= 0) {
+    msgCheck = 60;
+    const el = document.getElementById('msg');
+    if (el) msgBandBottom = el.getBoundingClientRect().top + 84; // room for up to three lines
+  }
+  const labelTop = cy - R * 1.15 - 22 - 16 - R * 0.2; // label sits above the outer ring (box guide a bit higher)
+  return labelTop < msgBandBottom ? [cx, cy + (msgBandBottom - labelTop), R] : [cx, cy, R];
+}
+
 export function drawFrame(dt) {
   const { W, H } = view;
   const P = profile();
@@ -53,5 +66,5 @@ export function drawFrame(dt) {
     }
   }
 
-  drawBreath(breath, scene().anchor(), P.accent, app.coherence);
+  drawBreath(breath, clearOfMessages(scene().anchor()), P.accent, app.coherence);
 }
