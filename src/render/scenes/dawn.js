@@ -16,6 +16,7 @@ const MTN = Array.from({ length: 241 }, (_, i) => {
   return v * 0.92 + 0.06 + 0.012 * Math.sin(x * 90) + 0.008 * Math.sin(x * 210 + 1);
 });
 const BACK = ridge(200, [[1.4, 1], [3.3, 0.35], [8, 0.1]]);
+let wavePhase = 0; // integrated per frame, see lake.js
 const PINES = Array.from({ length: 16 }, (_, i) => ({ x: i < 8 ? rnd(-0.03, 0.16) : rnd(0.84, 1.03), h: rnd(0.12, 0.24) }));
 
 export function reset() {
@@ -33,6 +34,7 @@ export const anchor = lakeAnchor;
 export function draw({ dt, time, calm: c, progress: pg }) {
   const { W, H } = view;
   const rough = 1 - c, hor = H * 0.62, amp = H * 0.3;
+  wavePhase += dt * (0.5 + rough);
   const L = clamp(0.12 + 0.55 * pg + 0.33 * c); // overall dawn light
 
   const sky = ctx.createLinearGradient(0, 0, 0, hor);
@@ -122,7 +124,7 @@ export function draw({ dt, time, calm: c, progress: pg }) {
     const k = i / 20, y = hor + 6 + Math.pow(k, 1.5) * (H - hor), a = (1 + k * 5) * (0.1 + rough);
     ctx.strokeStyle = `rgba(230,220,240,${(0.04 + 0.06 * k) * (0.3 + rough)})`;
     ctx.beginPath();
-    for (let x = 0; x <= W; x += 16) { const yy = y + Math.sin(x * 0.018 + time * (0.5 + rough) + i) * a; x ? ctx.lineTo(x, yy) : ctx.moveTo(x, yy); }
+    for (let x = 0; x <= W; x += 16) { const yy = y + Math.sin(x * 0.018 + wavePhase + i) * a; x ? ctx.lineTo(x, yy) : ctx.moveTo(x, yy); }
     ctx.stroke();
   }
 

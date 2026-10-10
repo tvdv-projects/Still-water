@@ -13,6 +13,9 @@ export const STARS = Array.from({ length: 260 }, () => ({ x: Math.random(), y: M
 export const MIST = Array.from({ length: 9 }, () => ({ u: Math.random() * 1.4 - 0.2, y: rnd(0.5, 0.7), w: rnd(0.35, 0.7), sp: rnd(0.004, 0.012) * (Math.random() < 0.5 ? -1 : 1) }));
 const lamps = Array.from({ length: STEPS }, (_, i) => ({ u: 0.12 + (i / (STEPS - 1)) * 0.76 + rnd(-0.03, 0.03), d: rnd(0.15, 1), ph: rnd(0, TAU), lit: false, t: 0 }));
 const REEDS = Array.from({ length: 34 }, (_, i) => ({ x: i < 17 ? rnd(-0.02, 0.2) : rnd(0.8, 1.02), h: rnd(0.12, 0.3), ph: rnd(0, TAU), b: rnd(-0.08, 0.08) }));
+// Animation phases. Speeds depend on calm, so each phase is integrated per frame (phase += speed · dt).
+// Multiplying a changing speed by the absolute clock would make the motion jump and race.
+const phase = { moon: 0, wave: 0, bob: 0, reed: 0 };
 const FLIES = Array.from({ length: 30 }, () => ({ x: Math.random(), y: rnd(0.5, 0.8), ph: rnd(0, TAU), vx: rnd(-0.01, 0.01) }));
 
 export function reset() {
@@ -33,7 +36,13 @@ export function anchor() {
 /** @param {{dt:number, time:number, calm:number, progress:number, variant:'calm'|'sleep'}} f */
 export function draw({ dt, time, calm: c, progress: pg, variant }) {
   const { W, H } = view;
-  const sleep = variant === 'sleep', rough = 1 - c, hor = H * 0.6;
+  const sleep = variant === 'sleep', hor = H * 0.6;
+  // Sleep stays serene: at most half the restlessness of the calm variant.
+  const rough = (1 - c) * (sleep ? 0.5 : 1);
+  phase.moon += dt * (1.2 + rough * 2);
+  phase.wave += dt * (0.6 + rough * 1.4);
+  phase.bob += dt * (1 + rough);
+  phase.reed += dt * (0.8 + rough * 1.6);
   const dk = sleep ? 1 - 0.45 * pg : 1;
 
   const sky = ctx.createLinearGradient(0, 0, 0, hor);
@@ -81,7 +90,7 @@ export function draw({ dt, time, calm: c, progress: pg, variant }) {
   if (my < hor) {
     for (let i = 0; i < 46; i++) {
       const y = hor + 6 + (i * (H - hor)) / 46, k = i / 46, spread = (8 + k * 40) * (0.35 + rough * 1.6);
-      const ox = Math.sin(time * (1.2 + rough * 2) + i * 0.9) * spread * 0.6, len = (10 + k * 30) * (1.2 - rough * 0.5) * (0.6 + 0.4 * Math.sin(time * 1.7 + i * 2.3));
+      const ox = Math.sin(phase.moon + i * 0.9) * spread * 0.6, len = (10 + k * 30) * (1.2 - rough * 0.5) * (0.6 + 0.4 * Math.sin(time * 1.7 + i * 2.3));
       ctx.fillStyle = `rgba(230,232,250,${(0.42 - k * 0.3) * (0.5 + 0.5 * c) * mA})`;
       ctx.fillRect(mx + ox - len / 2, y, len, 1.4 + k * 1.4);
     }
@@ -91,7 +100,7 @@ export function draw({ dt, time, calm: c, progress: pg, variant }) {
     const k = i / 28, y = hor + 4 + Math.pow(k, 1.6) * (H - hor), amp = (1 + k * 6) * (0.15 + rough * 1.2);
     ctx.strokeStyle = `rgba(150,180,215,${(0.05 + 0.08 * k) * (0.4 + rough) * dk})`;
     ctx.beginPath();
-    for (let x = 0; x <= W; x += 14) { const yy = y + Math.sin(x * (0.02 - k * 0.012) + time * (0.6 + rough * 1.4) + i) * amp; x ? ctx.lineTo(x, yy) : ctx.moveTo(x, yy); }
+    for (let x = 0; x <= W; x += 14) { const yy = y + Math.sin(x * (0.02 - k * 0.012) + phase.wave + i) * amp; x ? ctx.lineTo(x, yy) : ctx.moveTo(x, yy); }
     ctx.stroke();
   }
 
@@ -100,7 +109,7 @@ export function draw({ dt, time, calm: c, progress: pg, variant }) {
     l.t += dt;
     const persp = lerp(0.45, 1.2, l.d), drift = sleep && l.lit ? Math.min(l.t, 60) * 4 : 0;
     const x = l.u * W + Math.sin(time * 0.07 + l.ph) * 14 + drift;
-    const y = hor + 10 + l.d * (H - hor) * 0.55 + Math.sin(time * (1 + rough) + l.ph) * (1 + rough * 4) * persp;
+    const y = hor + 10 + l.d * (H - hor) * 0.55 + Math.sin(phase.bob + l.ph) * (1 + rough * 4) * persp;
     const s = 9 * persp * Math.max(0.7, Math.min(W, H) / 700), fl = 1 + Math.sin(time * 8 + l.ph) * 0.04;
     const on = sleep ? (l.lit ? 1 - clamp(l.t / 5) : 1) : l.lit ? clamp(l.t / 2.5) : 0;
     if (on > 0) {
@@ -137,7 +146,7 @@ export function draw({ dt, time, calm: c, progress: pg, variant }) {
   // Foreground reeds sway more when tense.
   ctx.lineCap = 'round';
   for (const r of REEDS) {
-    const bx = r.x * W, by = H + 4, h = r.h * H, sway = Math.sin(time * (0.8 + rough * 1.6) + r.ph) * (4 + rough * 14) + r.b * h;
+    const bx = r.x * W, by = H + 4, h = r.h * H, sway = Math.sin(phase.reed + r.ph) * (4 + rough * 14) + r.b * h;
     ctx.strokeStyle = 'rgb(6,10,10)'; ctx.lineWidth = 2.2;
     ctx.beginPath(); ctx.moveTo(bx, by); ctx.quadraticCurveTo(bx + sway * 0.3, by - h * 0.55, bx + sway, by - h); ctx.stroke();
     if (r.ph > 4) { ctx.fillStyle = 'rgb(10,12,12)'; ctx.beginPath(); ctx.ellipse(bx + sway, by - h, 2.6, 9, sway * 0.01, 0, TAU); ctx.fill(); }
