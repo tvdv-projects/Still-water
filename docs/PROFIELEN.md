@@ -6,7 +6,7 @@ Elk profiel staat in `src/config/profiles.js` en bepaalt scène, muziekstijl, do
 
 ### Slaap
 - **Scène:** het meer diep in de nacht. De maan zakt naar de horizon, de mist wordt dikker, de lantaarns doven één voor één en drijven weg. Het beeld wordt steeds donkerder.
-- **Muziek (`deep`):** lage, donkere akkoorden, geen hoge tikjes, water dat als trage golven aanzwelt. Sterft de laatste twee minuten weg, zonder slotakkoord.
+- **Muziek (`deep`), Biosphere bij nacht:** brede, donkere pads die heel langzaam in elkaar overvloeien, een zacht luchtkoor, af en toe een glaskorrel, wat taperuis. Geen ritme. Water dat als trage golven aanzwelt. Sterft de laatste twee minuten weg, zonder slotakkoord.
 - **Dieren:** krekels, een kikker, af en toe een uil.
 - **Binaural:** start tussen 7 en 12 Hz, afhankelijk van je hartslag, en zakt naar 2,5 Hz (deltagebied, geassocieerd met diepe slaap).
 - **Doel:** hartslag zo ver mogelijk omlaag.
@@ -14,31 +14,33 @@ Elk profiel staat in `src/config/profiles.js` en bepaalt scène, muziekstijl, do
 
 ### Ontspanning
 - **Scène:** het nachtelijke meer. De mist trekt op, het water wordt stiller, de lantaarns gaan aan en er verschijnen vuurvliegjes.
-- **Muziek (`glacial`):** koude ambient in D dorisch, ijzige tikjes, verre aanzwellende tonen.
+- **Muziek (`glacial`), Loscil / Biosphere:** ondergedompelde pads in D dorisch, gedempte dub-akkoorden die in een ping-pong-echo oplossen, glaskorrels en een luchtkoor die langzaam om je heen draaien, vinylkraak en taperuis.
 - **Dieren:** krekels, kikkers, een duiker die over het meer roept, af en toe een uil.
 - **Binaural:** van 9–14 Hz naar 6 Hz (thetagebied).
 - **Doel:** hartslag omlaag.
 
 ### Ontspannen focus
 - **Scène:** een bergmeer in het blauwe uur. Hoe rustiger je wordt, hoe meer de dageraad doorbreekt: de lucht kleurt warmer, de mist trekt op en de toppen vangen één voor één goudlicht, de hoogste eerst.
-- **Muziek (`warm`):** lichtere klank in D lydisch, een trage, regelmatige reeks akkoordtonen.
+- **Muziek (`warm`), Carbon Based Lifeforms zonder beat:** warme pads in D lydisch, lange basnoten, een synthsequence in achtsten door een resonerend filter dat langzaam opengaat, met echo. 80 BPM, of je hartslag.
 - **Dieren:** zangvogels, een koekoek in de verte, een specht die op een boom roffelt.
 - **Binaural:** van 13–18 Hz naar 10 Hz (alfagebied, ontspannen alert).
 - **Doel:** hartslag licht omlaag.
 
 ### Volle focus
 - **Scène:** één kaarsvlam in het donker. Een onrustige hartslag laat de vlam flakkeren; een stabiele hartslag maakt hem stil. Met de voortgang wordt een ensō (zen-inktcirkel) rond de vlam gepenseeld.
-- **Muziek (`minimal`):** één egale drone, een laag ruisbed en een zachte tik op 60 per minuut. Geen melodie, zodat niets afleidt.
+- **Muziek (`minimal`), AES Dana minimaal:** één egale drone, een zacht pulserende bas in achtsten en kleine klikjes die in de echo verspringen. Geen melodie, zodat niets afleidt. 88 BPM, of je hartslag.
 - **Dieren:** heel zacht, als door een raam: soms een krekel, zelden een uil.
 - **Binaural:** van 16–20 Hz naar 14 Hz (laag bèta).
 - **Doel:** hartslag **stabiel**, niet per se lager. Je scoort als je binnen ±1,5 slag van je beginwaarde blijft en de schommeling over 30 seconden klein is. Voor scherp nadenken wil je niet wegzakken.
 
 ### Energie
 - **Scène:** een kampvuur in een bos. Het vuur is een deeltjessysteem: hoe meer je opwarmt, hoe hoger en feller het oplaait. Elke stap voortgang laat een nieuw houtblok vlam vatten, met een regen van vonken. De bomen rondom vangen het licht. Bij de vuurademhaling flakkert het vuur op met elke uitademing.
-- **Muziek (`bright`):** heldere akkoorden in D majeur, een snel herhalend toonpatroon, knisperend vuur en een zacht shakergeluid. De hartslagpuls slaat 6 slagen per minuut sneller dan je eigen hartslag, als een duwtje omhoog.
+- **Muziek (`bright`), Carbon Based Lifeforms downtempo:** een zachte beat (kick, snare, hihat met swing), een baslijn, een sequence in zestienden die over 32 maten opengaat, pads die meeademen met de kick, en knisperend vuur. 94 BPM, of je hartslag plus 6, als een duwtje omhoog.
 - **Dieren:** krekels, een snorrende nachtzwaluw, een uil en soms een wolf in de verte, af en toe beantwoord door een tweede.
 - **Binaural:** start tussen 8 en 12 Hz (lager bij een lage hartslag) en gaat **omhoog** naar 18 Hz (bèta).
 - **Doel:** hartslag **5 tot 12 slagen boven je beginwaarde**. Daaronder bouw je langzaam voortgang op. Tussen +12 en +15 neemt de beloning af, en boven +15 is er geen voortgang meer, schuift de binaural terug en verschijnt na 10 seconden een rustig berichtje. Het spel beloont opwekken, niet opjagen. Blijft je hartslag anderhalve minuut laag, dan stelt het een houding of de vuurademhaling voor.
+
+**Tempo.** In het geluidspaneel kies je **Tempo: vast** (standaard) of **Tempo: volgt hartslag**. Bij volgen verschuift het tempo hooguit 1 BPM per maat, binnen een bereik per profiel, zodat het nooit schokt.
 
 Alle dierengeluiden worden in code gemaakt (`src/audio/fauna.js`). Elk dier roept op een eigen willekeurig moment, meestal een keer per halve minuut tot een paar minuten, op een willekeurige plek links of rechts en met galm, zodat het klinkt alsof het om je heen en op afstand is. Ze lopen via het schuifje **Natuur**.
 

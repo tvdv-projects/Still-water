@@ -1,6 +1,6 @@
 // Occasional animal sounds, all synthesised. Each style lists which animals live in its scene and how
-// often they call (see `fauna` in styles.js). Every call gets a random place in the stereo field and
-// some reverb, so the animals sound distant and spread around you rather than in your ear.
+// often they call (see `fauna` in styles.js). Every call gets a random place around your head (3D audio)
+// and some reverb, so the animals sound distant and spread around you rather than in your ear.
 //
 // Levels are deliberately low: the animals should be something you notice now and then, not something
 // that pulls you out of the session.
@@ -19,14 +19,26 @@ export function createFauna(ac, out, rev) {
     return b;
   })();
 
-  /** Route a sound to a random (or given) position, with `wet` reverb. Returns the input node. */
+  /**
+   * Route a sound to a place around you, with `wet` reverb. `pan` (-1..1) sets the direction:
+   * with 3D audio (HRTF) the animal is placed on a circle around your head, a few metres away,
+   * sometimes behind you; otherwise it falls back to plain stereo panning.
+   */
   function place(wet = 0.4, pan = rand(-0.85, 0.85), dry = 1) {
     const input = ac.createGain();
-    const p = ac.createStereoPanner ? ac.createStereoPanner() : null;
     const dg = ac.createGain(); dg.gain.value = dry;
     const wg = ac.createGain(); wg.gain.value = wet;
-    if (p) { p.pan.value = pan; input.connect(p); p.connect(dg); p.connect(wg); }
-    else { input.connect(dg); input.connect(wg); }
+    let node = input;
+    if (typeof ac.createPanner === 'function') {
+      const p = ac.createPanner(), a = pan * Math.PI * (Math.random() < 0.3 ? 0.95 : 0.6), d = rand(2.5, 6);
+      p.panningModel = 'HRTF'; p.distanceModel = 'inverse'; p.refDistance = 2; p.rolloffFactor = 0.5;
+      const [x, y, z] = [Math.sin(a) * d, rand(-0.3, 1.5), -Math.cos(a) * d];
+      if (p.positionX) { p.positionX.value = x; p.positionY.value = y; p.positionZ.value = z; } else p.setPosition(x, y, z);
+      input.connect(p); node = p;
+    } else if (ac.createStereoPanner) {
+      const p = ac.createStereoPanner(); p.pan.value = pan; input.connect(p); node = p;
+    }
+    node.connect(dg); node.connect(wg);
     dg.connect(out); wg.connect(rev);
     return input;
   }

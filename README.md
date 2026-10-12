@@ -18,7 +18,7 @@ Een rustgevende wereld die reageert op je hartslag. Kies een profiel (slaap, ont
   | Energie | kampvuur dat oplaait | hartslag +5 tot +12 | ↑ 18 Hz |
 
 - **Dieren in elke scène**, af en toe en op afstand: krekels en een uil bij het nachtmeer, een duiker over het water, vogels, een koekoek en een specht bij de dageraad, een nachtzwaluw en een verre wolf bij het kampvuur.
-- **Muziek die je hartslag volgt.** De drone wordt helderder als je hartslag stijgt en donkerder als hij daalt, zonder dat de toonhoogte gaat zweven.
+- **Ruimtelijke ambient** in de geest van Biosphere en Loscil (slaap, ontspanning) en Carbon Based Lifeforms en AES Dana (focus, energie), met galm, echo en klanken die om je hoofd draaien. De klank wordt helderder als je hartslag stijgt en donkerder als hij daalt. Het tempo van de focus- en energiemuziek is vast of volgt je hartslag.
 - **Ademhalingsoefeningen**, drie per profiel, met een visuele gids en ademgeluid. Ze staan standaard uit en kunnen tijdens de sessie wisselen.
 - **Live HRV en coherentie** met een borstband (bijvoorbeeld Garmin HRM 200): de tijd tussen hartslagen geeft je HRV, en tijdens de ademhalingsoefeningen zie je hoe sterk je hart je ademhaling volgt.
 - **Beeldeffecten** onder het menu **Beeld**: tien hypnotiserende effecten die je los aan- en uitzet, zoals hartslag-rimpels, een scène die meeademt, noorderlicht en een coherentie-mandala. Ze bewegen traag op je adem of hartslag en flitsen nooit. Je keuze wordt onthouden.

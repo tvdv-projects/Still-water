@@ -83,6 +83,21 @@ function initSoundPanel() {
     setBinButton();
     if (audio.binOn && !audio.on && app.state !== 'intro') audio.start();
   });
+  // Tempo of the focus and energy music: fixed, or following the heart rate.
+  const setTempoButton = (v) => {
+    $('tempo').textContent = v ? 'Tempo: volgt hartslag' : 'Tempo: vast';
+    $('tempo').setAttribute('aria-pressed', String(v));
+  };
+  let tempoHr = store.get('tempoHr', false);
+  audio.setTempoFollow(tempoHr);
+  setTempoButton(tempoHr);
+  $('tempo').addEventListener('click', (e) => {
+    e.currentTarget.blur();
+    tempoHr = !tempoHr;
+    store.set('tempoHr', tempoHr);
+    audio.setTempoFollow(tempoHr);
+    setTempoButton(tempoHr);
+  });
   $('snd').addEventListener('click', (e) => {
     const panel = $('mix');
     panel.hidden = !panel.hidden;

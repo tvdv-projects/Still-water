@@ -14,9 +14,14 @@
 <script type="importmap">
   {
     "imports": {
-      "./src/audio/engine.js": "./src/audio/engine.js?v=d0d6ee9902",
-      "./src/audio/fauna.js": "./src/audio/fauna.js?v=aef54171ff",
-      "./src/audio/styles.js": "./src/audio/styles.js?v=536120bbde",
+      "./src/audio/ambient.js": "./src/audio/ambient.js?v=597ed295e9",
+      "./src/audio/dsp.js": "./src/audio/dsp.js?v=5f024dbb8c",
+      "./src/audio/engine.js": "./src/audio/engine.js?v=3fd033f01d",
+      "./src/audio/fauna.js": "./src/audio/fauna.js?v=12922e8760",
+      "./src/audio/groove.js": "./src/audio/groove.js?v=ddd619b705",
+      "./src/audio/patches.js": "./src/audio/patches.js?v=ea9adb233e",
+      "./src/audio/space.js": "./src/audio/space.js?v=69c2c2e1fd",
+      "./src/audio/styles.js": "./src/audio/styles.js?v=07bc5573b0",
       "./src/config/breathing.js": "./src/config/breathing.js?v=b999042312",
       "./src/config/profiles.js": "./src/config/profiles.js?v=261f17993d",
       "./src/core/breathing.js": "./src/core/breathing.js?v=1a6be12ee1",
@@ -26,7 +31,7 @@
       "./src/core/storage.js": "./src/core/storage.js?v=44771c5605",
       "./src/heart-rate/bluetooth.js": "./src/heart-rate/bluetooth.js?v=c4ac6e2688",
       "./src/heart-rate/simulator.js": "./src/heart-rate/simulator.js?v=7e10841334",
-      "./src/main.js": "./src/main.js?v=f66ce6749f",
+      "./src/main.js": "./src/main.js?v=2cb1430dfd",
       "./src/render/breath-overlay.js": "./src/render/breath-overlay.js?v=efdeea7b14",
       "./src/render/context.js": "./src/render/context.js?v=586d800392",
       "./src/render/effects.js": "./src/render/effects.js?v=226078fd54",
@@ -38,7 +43,7 @@
       "./src/session.js": "./src/session.js?v=08d7fa622a",
       "./src/state.js": "./src/state.js?v=2903f9c2ea",
       "./src/ui/breath-bar.js": "./src/ui/breath-bar.js?v=d5c901d303",
-      "./src/ui/controls.js": "./src/ui/controls.js?v=4ea9cf4121",
+      "./src/ui/controls.js": "./src/ui/controls.js?v=10e361456c",
       "./src/ui/dom.js": "./src/ui/dom.js?v=685583a6e5",
       "./src/ui/fx-menu.js": "./src/ui/fx-menu.js?v=92e6b9c283",
       "./src/ui/hud.js": "./src/ui/hud.js?v=24ab1087bf",
@@ -69,9 +74,10 @@
 <div class="mix" id="mix" hidden>
   <label for="vMusic">Muziek</label><input id="vMusic" type="range" min="0" max="100" value="80">
   <label for="vNature">Natuur</label><input id="vNature" type="range" min="0" max="100" value="70">
-  <label for="vPulse">Hartslagpuls</label><input id="vPulse" type="range" min="0" max="100" value="60">
+  <label for="vPulse">Puls en beat</label><input id="vPulse" type="range" min="0" max="100" value="60">
   <label for="vBreath">Ademgeluid</label><input id="vBreath" type="range" min="0" max="100" value="60">
   <button id="bin" type="button" aria-pressed="false">Binaural aan</button>
+  <button id="tempo" type="button" aria-pressed="false">Tempo: vast</button>
 </div>
 
 <div class="mix fx" id="fxPanel" hidden>

@@ -28,7 +28,12 @@ src/
     bluetooth.js        Web Bluetooth, Heart Rate Service (0x180D)
     simulator.js        testmodus
   audio/
-    engine.js           Web Audio-engine: drone met binaural, lagen, effecten
+    engine.js           Web Audio-engine: bussen, binaural-draaggolf, natuur, puls
+    dsp.js              pure DSP: FFT, PADsynth, galm-impulsrespons, tapeverzadiging (getest)
+    patches.js          de instrumentklanken, op de achtergrond berekend
+    ambient.js          pads, luchtkoor, glaskorrels, dub-akkoorden, ruis en kraak
+    groove.js           bas, filtersequence, klikjes en beat met tempo (focus en energie)
+    space.js            galm, ping-pong-echo, 3D-banen rond je hoofd
     styles.js           muziekstijl per profiel
     fauna.js            dierengeluiden (krekel, uil, kikker, duiker, koekoek, specht, wolf …)
   render/
@@ -91,15 +96,25 @@ Ontwerpregels: alles beweegt traag en gelijkmatig op adem of hartslag, met één
 
 ## Audio
 
-Elke drone-stem bestaat uit twee oscillatoren: één voor links, één voor rechts. De rechter is verstemd met de binaural-frequentie, zodat de zweving in de muziek zelf zit en niet als losse toon klinkt. De galm gebruikt per kanaal een eigen impulsrespons, zodat het binaurale beeld behouden blijft.
+Alles wordt in code gemaakt; er zijn geen audiobestanden.
 
-Toonhoogtes glijden nooit: bij een akkoordwissel vervaagt elke stem, springt in stilte naar de nieuwe toon en komt weer op, met de stemmen na elkaar zodat het geluid doorloopt. Alleen het rechteroor verschuift langzaam mee met de binaural-frequentie. De hartslag stuurt de klankkleur (filter), niet de toonhoogte; dat voorkomt het "vinger op de plaat"-effect.
+**Klank: PADsynth.** Kale oscillatoren klinken als "computer". De instrumenten (`patches.js`) worden daarom met PADsynth gemaakt (`dsp.js`). Elke boventoon is een smalle band frequenties met willekeurige fases, en één inverse FFT maakt daar een lus van ruim vijf seconden van die naadloos herhaalt. Dat klinkt als een ensemble: warm en levend, zonder dat de toonhoogte zweeft. Per oor wordt een eigen versie berekend, zodat het breed klinkt. De rechter is voor een deel met de linker gemengd, zodat het nooit hol wordt. De vier klanken (pad, warm, lucht, glas) worden bij het laden van de pagina op de achtergrond berekend, één tabel per keer. De muziek begint zodra ze klaar zijn.
+
+**Lagen.**
+- `ambient.js`: akkoorden die in elkaar overvloeien (oude stemmen vervagen terwijl nieuwe één voor één opkomen), een ademend luchtkoor, trage glaskorrels, gedempte dub-akkoorden in de echo (Ontspanning), taperuis en vinylkraak.
+- `groove.js`: bas, een zaagtandsequence door een resonerend filter dat over 32 maten open- en dichtgaat, klikjes, en voor Energie een zachte downtempo-beat met sidechain op de pads. Het tempo is vast per stijl, of volgt je hartslag (schakelaar in het geluidspaneel); dan verschuift het hooguit 1 BPM per maat.
+
+**Ruimte** (`space.js`). Een donkere galm van 9 seconden, gegenereerd met vroege reflecties en een staart waarin de hoge tonen sneller uitsterven dan de lage. Een dub-ping-pong-echo waarin elke herhaling donkerder en dunner wordt. En drie HRTF-banen die langzaam om je hoofd draaien, voor het luchtkoor en de glaskorrels. Dieren krijgen elk een vaste plek om je heen, soms achter je.
+
+**Binaural.** De beat zit op een eigen zuivere draaggolf: links de toon, rechts de toon plus de beatfrequentie. Zo klopt de beat precies, terwijl de pads vrij kunnen klinken. Bij een stijlwissel vervaagt de draaggolf, springt in stilte naar de nieuwe toon en komt weer op.
+
+Toonhoogtes glijden nooit. De hartslag stuurt de klankkleur (filter), niet de toonhoogte; dat voorkomt het "vinger op de plaat"-effect.
 
 Het ademgeluid is roze ruis door een zacht laagdoorlaatfilter, en klinkt alleen terwijl de ademgids beweegt (stil bij vasthouden).
 
-Dieren (`fauna.js`) hebben een eigen galm die op de natuurbus uitkomt, zodat het schuifje Natuur ook hun echo regelt.
+De muziekbus gaat door een zachte tapeverzadiging, die pieken afrondt in plaats van ze af te knippen.
 
-Bussen: `music`, `nature`, `pulse` en `breath`, elk met een eigen schuifje in het geluidspaneel. Alles loopt via een compressor naar de uitgang.
+Bussen: `music`, `nature`, `pulse` (hartslagpuls, of beat en klikjes bij een groove) en `breath`, elk met een eigen schuifje in het geluidspaneel. Alles loopt via een compressor naar de uitgang.
 
 iOS: geluid start alleen na een tik. `audio.unlock()` wordt daarom synchroon in de klik-handler aangeroepen, nog vóór de bluetooth-kiezer. Een stil `<audio>`-element zorgt dat iOS de pagina als mediaweergave behandelt, zodat de stil-schakelaar het geluid niet dempt.
 

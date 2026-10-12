@@ -1,6 +1,7 @@
 // Entry point: wires the modules together and runs the animation loop.
 
 import { audio } from './audio/engine.js';
+import { precompute } from './audio/patches.js';
 import { BREATHS } from './config/breathing.js';
 import { currentStep, stepBreath } from './core/breathing.js';
 import { initSimulator } from './heart-rate/simulator.js';
@@ -19,6 +20,8 @@ initSimulator();
 initBreathBar();
 initHud();
 initControls();
+// Render the instrument sounds in the background while the intro screen is showing.
+precompute();
 
 let last = performance.now(), lastLevel = 0;
 function frame(now) {

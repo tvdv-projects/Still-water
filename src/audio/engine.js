@@ -1,18 +1,25 @@
 // Generative audio engine (Web Audio API). Everything is synthesised; there are no audio files.
 //
 // Signal flow:
-//   drone voices (L/R oscillator pairs) → low-pass → musicBus (+ reverb)
-//   grains, swells, arpeggio, ticks, chimes  → musicBus (+ reverb)
-//   water or fire, wind, animals (fauna.js)  → natureBus (+ reverb)
-//   sub pulse                                → pulseBus
-//   breath noise                             → breathBus
+//   ambient.js: PADsynth chords, air choir, glass grains, dub stabs, hiss  ┐
+//   groove.js:  bass, filtered sequence (focus/energy)                     ├→ musicBus → tape saturation
+//   space.js:   reverb, ping-pong delay, HRTF orbits (wet signals)        ┘
+//   binaural carrier (pure L/R tone pair)                                  → musicBus
+//   water or fire, wind, animals (fauna.js)                                → natureBus (+ own reverb)
+//   heart pulse, or the beat and clicks of a groove                        → pulseBus
+//   breath noise                                                           → breathBus
 //   all buses → master → compressor → speakers
 //
-// Binaural beats: every drone voice is a pair of oscillators, left and right ear.
-// The right one is detuned by the beat frequency, so the beat is woven into the music.
+// Binaural beats live on their own pure tone pair: the left ear hears the carrier, the right ear the
+// carrier plus the beat frequency. Keeping it separate means the beat is exact, while the pads can be
+// as rich and wide as they like.
 
-import { clamp, lerp, TAU } from '../core/math.js';
+import { clamp, TAU } from '../core/math.js';
+import { createAmbient } from './ambient.js';
+import { saturationCurve } from './dsp.js';
 import { createFauna } from './fauna.js';
+import { createGroove } from './groove.js';
+import { createSpace } from './space.js';
 import { STYLES } from './styles.js';
 
 const D2 = 73.42;
@@ -58,16 +65,14 @@ function silentWav() {
 }
 
 function createEngine() {
-  let ac, master, musicBus, natureBus, pulseBus, breathBus, rev;
-  let lap, lapF, wind, windF, padF, bed, breathGain, breathFilter;
-  let on = false, binOn = false, beat = 10, beatTarget = 10;
+  let ac, master, musicBus, natureBus, pulseBus, breathBus, space, ambient, groove, fauna;
+  let lap, lapF, wind, windF, breathGain, breathFilter, crackleBuf;
+  let carL, carR, carG, carF = st(12), carPending = null;
+  let on = false, binOn = false, beat = 10, beatTarget = 10, follow = false;
   const mix = { music: 0.8, nature: 0.7, pulse: 0.6, breath: 0.6 };
-  const voices = [];
-  let chordIdx = 0, arpI = 0;
-  const next = { chord: 0, grain: 0, swell: 0, pulse: 0, arp: 0, tick: 0, crackle: 0 };
+  const next = { pulse: 0, crackle: 0 };
   let styleName = 'glacial', S = STYLES.glacial;
-  let unlockEl = null, crackleBuf, fauna;
-  let faunaNext = {};
+  let unlockEl = null, faunaNext = {};
 
   function init() {
     ac = new (window.AudioContext || window.webkitAudioContext)();
@@ -78,24 +83,23 @@ function createEngine() {
     comp.ratio.value = 3;
     master.connect(comp).connect(ac.destination);
     musicBus = ac.createGain(); natureBus = ac.createGain(); pulseBus = ac.createGain(); breathBus = ac.createGain();
-    [musicBus, natureBus, pulseBus, breathBus].forEach((b) => b.connect(master));
+    // Soft tape saturation on the music: rounds off peaks and adds a little warmth.
+    const tape = ac.createWaveShaper(); tape.curve = saturationCurve(1.6); tape.oversample = '2x';
+    musicBus.connect(tape).connect(master);
+    [natureBus, pulseBus, breathBus].forEach((b) => b.connect(master));
     applyMix();
 
-    // Reverb: 7 s of decaying noise, independent per channel so the binaural image survives.
-    rev = ac.createConvolver();
-    const len = ac.sampleRate * 7, ib = ac.createBuffer(2, len, ac.sampleRate);
-    for (let c = 0; c < 2; c++) {
-      const d = ib.getChannelData(c);
-      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2) * (i < ac.sampleRate * 0.03 ? i / (ac.sampleRate * 0.03) : 1);
-    }
-    rev.buffer = ib;
-    const rg = ac.createGain();
-    rg.gain.value = 0.6;
-    rev.connect(rg).connect(musicBus);
+    space = createSpace(ac, musicBus);
+    const noise = { white: noiseBuffer(ac, 0.5, false), pink: pinkBuffer(ac, 6), brown: noiseBuffer(ac, 5, true) };
+    ambient = createAmbient({ ac, music: musicBus, space, noise });
+    groove = createGroove({ ac, music: musicBus, pulse: pulseBus, space, duck: ambient.duck, noise });
+    groove.setFollow(follow);
+
     // The animals get their own reverb into the nature bus, so the Natuur slider controls their echo too.
     const natRev = ac.createConvolver(), ng = ac.createGain();
-    natRev.buffer = ib; ng.gain.value = 0.6;
+    natRev.buffer = space.reverb.buffer; ng.gain.value = 0.6;
     natRev.connect(ng).connect(natureBus);
+    fauna = createFauna(ac, natureBus, natRev);
 
     const loop = (buf, filterType, freq, q, gainNode, bus) => {
       const s = ac.createBufferSource(); s.buffer = buf; s.loop = true;
@@ -105,35 +109,24 @@ function createEngine() {
     };
     lap = ac.createGain(); lap.gain.value = 0.03; lapF = loop(noiseBuffer(ac, 6, true), 'lowpass', 500, 0, lap, natureBus);
     wind = ac.createGain(); wind.gain.value = 0; windF = loop(noiseBuffer(ac, 4, false), 'bandpass', 600, 0.6, wind, natureBus);
-    bed = ac.createGain(); bed.gain.value = 0; loop(noiseBuffer(ac, 5, true), 'lowpass', 320, 0, bed, musicBus);
     crackleBuf = noiseBuffer(ac, 0.05, false);
-    fauna = createFauna(ac, natureBus, natRev);
+
     // Breath: pink noise, high-passed against rumble and gently low-passed so it sounds like air, not hiss.
     breathGain = ac.createGain(); breathGain.gain.value = 0;
     {
-      const s = ac.createBufferSource(); s.buffer = pinkBuffer(ac, 4); s.loop = true;
+      const s = ac.createBufferSource(); s.buffer = noise.pink; s.loop = true;
       const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 140;
       breathFilter = ac.createBiquadFilter(); breathFilter.type = 'lowpass'; breathFilter.frequency.value = 600; breathFilter.Q.value = 0.3;
       s.connect(hp).connect(breathFilter).connect(breathGain).connect(breathBus); s.start();
     }
 
-    padF = ac.createBiquadFilter(); padF.type = 'lowpass'; padF.frequency.value = 500; padF.Q.value = 0.4;
-    const padBus = ac.createGain(); padBus.gain.value = 0.9;
-    padF.connect(padBus); padBus.connect(musicBus); padBus.connect(rev);
-    S.chords[0].forEach((s, i) => {
-      const f = st(s), L = ac.createOscillator(), R = ac.createOscillator(), m = ac.createChannelMerger(2), g = ac.createGain();
-      L.type = R.type = i < 1 ? 'sine' : 'triangle';
-      L.frequency.value = f; R.frequency.value = f;
-      const wob = ac.createOscillator(), wg = ac.createGain();
-      wob.frequency.value = 0.05 + i * 0.013; wg.gain.value = 1;
-      wob.connect(wg); wg.connect(L.detune); wg.connect(R.detune); wob.start();
-      L.connect(m, 0, 0); R.connect(m, 0, 1); m.connect(g).connect(padF);
-      g.gain.value = 0;
-      L.start(); R.start();
-      voices.push({ L, R, g, f, lvl: [0.07, 0.07, 0.06, 0.05, 0.04][i], pending: null });
-    });
-    const t = ac.currentTime;
-    Object.assign(next, { chord: t + 28, grain: t + 2, swell: t + 9, pulse: t + 4, arp: t + 3, tick: t + 2 });
+    // Binaural carrier: left = carrier, right = carrier + beat.
+    carL = ac.createOscillator(); carR = ac.createOscillator(); carG = ac.createGain(); carG.gain.value = 0;
+    const m = ac.createChannelMerger(2);
+    carL.connect(m, 0, 0); carR.connect(m, 0, 1); m.connect(carG).connect(musicBus);
+    carL.start(); carR.start();
+
+    next.pulse = ac.currentTime + 4;
     setStyle(styleName, true);
   }
 
@@ -146,40 +139,20 @@ function createEngine() {
     breathBus.gain.setTargetAtTime(mix.breath * 1.5, n, 0.2);
   }
 
-  const offset = () => (binOn ? beat : 0.12);
-
-  /** Only the right ear follows the binaural beat; pitches themselves never glide. */
+  const carrierLevel = () => (binOn && on && !carPending ? 0.04 : 0);
   function updateBeat(tc) {
     const n = ac.currentTime;
-    voices.forEach((v) => { if (!v.pending) v.R.frequency.setTargetAtTime(v.f + offset(), n, tc); });
+    if (!carPending) carR.frequency.setTargetAtTime(carF + beat, n, tc);
+    carG.gain.setTargetAtTime(carrierLevel(), n, 0.6);
   }
 
-  /**
-   * Change chord without pitch glides (which sound like a finger on a record): each voice fades out,
-   * jumps to its new pitch while silent, and fades back in. Voices are staggered so the sound never drops out.
-   */
-  function changeChord(semis, immediate = false) {
+  /** A new carrier pitch: fade out, jump while silent, fade back in (never glide). */
+  function setCarrier(f, immediate) {
+    if (Math.abs(f - carF) < 0.01 && !carPending) return;
     const n = ac.currentTime;
-    semis.forEach((s, i) => {
-      const v = voices[i], f = st(s);
-      if (immediate) {
-        v.f = f; v.pending = null;
-        v.L.frequency.setValueAtTime(f, n); v.R.frequency.setValueAtTime(f + offset(), n);
-        return;
-      }
-      const out = n + i * 1.6;
-      v.g.gain.setTargetAtTime(0, out, 0.45);
-      v.pending = { f, at: out + 2.2 };
-    });
-  }
-
-  function applyPending(n) {
-    for (const v of voices) {
-      if (!v.pending || n < v.pending.at) continue;
-      v.f = v.pending.f; v.pending = null;
-      v.L.frequency.setValueAtTime(v.f, n); v.R.frequency.setValueAtTime(v.f + offset(), n);
-      v.g.gain.setTargetAtTime(on ? v.lvl : 0, n, 1.2);
-    }
+    if (immediate) { carF = f; carL.frequency.setValueAtTime(f, n); carR.frequency.setValueAtTime(f + beat, n); return; }
+    carG.gain.setTargetAtTime(0, n, 0.4);
+    carPending = { f, at: n + 2 };
   }
 
   function setStyle(name, force = false) {
@@ -188,41 +161,11 @@ function createEngine() {
     S = STYLES[name];
     faunaNext = {};
     if (!ac) return;
-    chordIdx = 0;
-    changeChord(S.chords[0], force || !on);
-    bed.gain.setTargetAtTime(S.bed, ac.currentTime, 2);
+    setCarrier(st(S.carrier ?? 12), force || !on);
+    ambient.setStyle(S);
+    groove.setStyle(S);
     applyMix();
   }
-
-  function note(f, vol, att, dec, at, pan = 0) {
-    const t = at || ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
-    const p = ac.createStereoPanner ? ac.createStereoPanner() : null;
-    o.frequency.value = f;
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + att); g.gain.exponentialRampToValueAtTime(0.0001, t + att + dec);
-    if (p) { p.pan.value = pan; o.connect(g).connect(p); p.connect(rev); p.connect(musicBus); } else { o.connect(g); g.connect(rev); g.connect(musicBus); }
-    o.start(t); o.stop(t + att + dec + 0.05);
-  }
-
-  const grain = (c) => note(st(S.scale[(Math.random() * S.scale.length) | 0] + 36 + (Math.random() < 0.4 ? 12 : 0)), 0.014 + 0.016 * c, 0.004, 0.5 + Math.random() * 0.8, 0, Math.random() * 1.8 - 0.9);
-
-  function swell() {
-    const t = ac.currentTime, f = st(S.scale[(Math.random() * S.scale.length) | 0] + 24);
-    const o = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain(), lp = ac.createBiquadFilter();
-    o.type = 'triangle'; o2.type = 'sine'; o.frequency.value = f; o2.frequency.value = f * 2.003; lp.type = 'lowpass'; lp.frequency.value = 1200;
-    const vib = ac.createOscillator(), vg = ac.createGain(); vib.frequency.value = 4.2; vg.gain.value = 4; vib.connect(vg); vg.connect(o.detune); vg.connect(o2.detune);
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.035, t + 3.5); g.gain.setValueAtTime(0.035, t + 7); g.gain.linearRampToValueAtTime(0, t + 14);
-    o.connect(lp); o2.connect(lp); lp.connect(g); g.connect(rev); g.connect(musicBus);
-    [o, o2, vib].forEach((x) => { x.start(t); x.stop(t + 14.2); });
-  }
-
-  function tickSound(t) {
-    const o = ac.createOscillator(), g = ac.createGain(), lp = ac.createBiquadFilter();
-    lp.type = 'lowpass'; lp.frequency.value = 1800; o.type = 'triangle';
-    o.frequency.setValueAtTime(980, t); o.frequency.exponentialRampToValueAtTime(620, t + 0.05);
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.03, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
-    o.connect(lp).connect(g); g.connect(musicBus); o.start(t); o.stop(t + 0.12);
-  }
-
 
   /** One fire crackle: a very short burst of filtered noise, randomly panned. */
   function crackle(intensity) {
@@ -237,30 +180,12 @@ function createEngine() {
     s.start(t); s.stop(t + len + 0.02);
   }
 
-  /** Soft shaker hit for the off-beat. */
-  function shaker(t) {
-    const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
-    s.buffer = crackleBuf; f.type = 'bandpass'; f.frequency.value = 6500; f.Q.value = 1.2;
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.03, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
-    s.connect(f).connect(g).connect(musicBus); s.start(t); s.stop(t + 0.06);
-  }
-
-
+  /** The heart pulse: a soft low thump (only in profiles without a groove). */
   function pulse() {
     const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
     o.frequency.setValueAtTime(58, t); o.frequency.exponentialRampToValueAtTime(41, t + 0.5);
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.045, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
     o.connect(g).connect(pulseBus); o.start(t); o.stop(t + 1);
-  }
-
-  function bell(f, vol, at) {
-    const t = at || ac.currentTime;
-    [[1, 1, 3.5], [2.76, 0.25, 1.4], [5.4, 0.08, 0.7]].forEach(([m, a, d]) => {
-      const o = ac.createOscillator(), g = ac.createGain();
-      o.frequency.value = f * m;
-      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol * a, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
-      o.connect(g); g.connect(musicBus); g.connect(rev); o.start(t); o.stop(t + d + 0.05);
-    });
   }
 
   return {
@@ -279,7 +204,6 @@ function createEngine() {
       on = true;
       master.gain.cancelScheduledValues(ac.currentTime);
       master.gain.setTargetAtTime(0.9, ac.currentTime, 2);
-      voices.forEach((v) => { if (!v.pending) v.g.gain.setTargetAtTime(v.lvl, ac.currentTime, 4); });
       updateBeat(0.3);
     },
     stop() { if (!ac) return; on = false; master.gain.setTargetAtTime(0, ac.currentTime, 0.3); },
@@ -288,6 +212,8 @@ function createEngine() {
     setStyle,
     setBeat(hz) { beatTarget = hz; },
     setBin(v) { binOn = v; if (ac) updateBeat(1.5); },
+    /** Tempo of the focus and energy music: fixed (false) or following the heart rate (true). */
+    setTempoFollow(v) { follow = !!v; if (groove) groove.setFollow(follow); },
 
     /**
      * Breath sound follows the guide's movement: audible while the lungs fill or empty, silent on holds.
@@ -324,37 +250,21 @@ function createEngine() {
       wind.gain.setTargetAtTime(0.003 + 0.03 * r * (0.7 + 0.3 * Math.sin(t * 0.23)), n, 1.2);
       windF.frequency.setTargetAtTime(500 + 300 * Math.sin(t * 0.11), n, 1);
 
-      const arousal = clamp((rel + 6) / 14);
-      padF.frequency.setTargetAtTime((550 + 1100 * arousal + 200 * Math.sin(t * 0.021)) * S.bright, n, 3);
-      applyPending(n);
+      if (carPending && n >= carPending.at) {
+        carF = carPending.f; carPending = null;
+        carL.frequency.setValueAtTime(carF, n); carR.frequency.setValueAtTime(carF + beat, n);
+        carG.gain.setTargetAtTime(carrierLevel(), n, 1);
+      }
       if (Math.abs(beatTarget - beat) > 0.04) { beat = beatTarget; updateBeat(2.5); }
 
-      if (n > next.chord) {
-        if (S.chords.length > 1) {
-          chordIdx = (chordIdx + 1) % S.chords.length;
-          changeChord(S.chords[chordIdx]);
-        }
-        next.chord = n + (26 + Math.random() * 14) * Math.min(S.slow, 3);
-      }
-      if (n > next.grain) { if (S.grain > 0) grain(c); next.grain = n + (lerp(2.2, 0.35, c) * (0.5 + Math.random())) / Math.max(0.1, S.grain); }
-      if (n > next.swell) { if (Math.random() < S.swell) swell(); next.swell = n + 14 + Math.random() * 16; }
-      if (S.arp && n > next.arp) {
-        const every = S.arpEvery || 1.6, pattern = S.arpPattern || [2, 3, 4, 3];
-        const ch = S.chords[chordIdx], k = pattern[arpI++ % pattern.length];
-        note(st(ch[k] + 24), every < 1 ? 0.012 : 0.016, 0.01, every < 1 ? 0.6 : 1.6, next.arp, arpI % 2 ? -0.35 : 0.35);
-        next.arp = Math.max(n, next.arp) + every;
-      }
+      const arousal = clamp((rel + 6) / 14);
+      space.tick(t);
+      ambient.tick(n, c, arousal, on);
+      groove.tick(n, { hr, c, arousal, chord: ambient.currentChord(), on });
+
       if (S.fire && n > next.crackle) { crackle(c); next.crackle = n + (0.04 + Math.random() * 0.35) / (0.5 + c); }
-      if (S.tick && active) {
-        while (next.tick < n + 0.1) { if (next.tick > n - 0.05) tickSound(next.tick); next.tick += 1; }
-      } else next.tick = n + 0.5;
-      if (active && hr) {
-        if (n > next.pulse) {
-          const every = 60 / Math.max(40, hr - S.pulseOff);
-          pulse();
-          if (S.perc) shaker(n + every / 2);
-          next.pulse = n + every;
-        }
+      if (!S.groove && active && hr) {
+        if (n > next.pulse) { pulse(); next.pulse = n + 60 / Math.max(40, hr - S.pulseOff); }
       } else next.pulse = n + 1;
       // Animals call now and then, each on its own random interval [min, max] seconds.
       for (const [kind, [lo, hi]] of Object.entries(S.fauna || {})) {
@@ -366,15 +276,16 @@ function createEngine() {
     /** Progress chime: one step up the style's scale per lantern / peak / segment. */
     chime(i) {
       if (!on) return;
-      bell(st(S.chimeOct + S.scale[(i - 1) % S.scale.length] + (i > S.scale.length ? 12 : 0)), styleName === 'deep' ? 0.035 : 0.05);
+      ambient.bell(st(S.chimeOct + S.scale[(i - 1) % S.scale.length] + (i > S.scale.length ? 12 : 0)), styleName === 'deep' ? 0.035 : 0.05);
     },
     bloom() {
       if (!on) return;
       const t = ac.currentTime;
-      [0, 7, 10, 14, 19].forEach((k, j) => bell(st(36 + k + (styleName === 'warm' && k === 10 ? 1 : 0)), 0.04, t + j * 0.22));
+      [0, 7, 10, 14, 19].forEach((k, j) => ambient.bell(st(36 + k + (styleName === 'warm' && k === 10 ? 1 : 0)), 0.04, t + j * 0.22));
     },
     get on() { return on; },
     get binOn() { return binOn; },
+    get bpm() { return groove && S.groove ? groove.bpm : null; },
     get context() { return ac; },
   };
 }
