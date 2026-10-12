@@ -102,7 +102,7 @@ Alles wordt in code gemaakt; er zijn geen audiobestanden.
 
 **Lagen.**
 - `ambient.js`: akkoorden die in elkaar overvloeien (oude stemmen vervagen terwijl nieuwe één voor één opkomen), een ademend luchtkoor, trage glaskorrels, gedempte dub-akkoorden in de echo (Ontspanning), taperuis en vinylkraak.
-- `groove.js`: bas, een zaagtandsequence door een resonerend filter dat over 32 maten open- en dichtgaat, klikjes, en voor Energie een zachte downtempo-beat met sidechain op de pads. Het tempo is vast per stijl, of volgt je hartslag (schakelaar in het geluidspaneel); dan verschuift het hooguit 1 BPM per maat.
+- `groove.js`: bas, een ronde synthsequence (driehoek met wat zaagtand) door een filter dat twee trage LFO's continu laten bewegen, met per noot een zachte filterpluk en een maatfilter dat over 32 maten opengaat, klikjes, en voor Energie een zachte downtempo-beat met sidechain op de pads. Het tempo is vast per stijl, of volgt je hartslag (schakelaar in het geluidspaneel); dan verschuift het hooguit 1 BPM per maat.
 
 **Ruimte** (`space.js`). Een donkere galm van 9 seconden, gegenereerd met vroege reflecties en een staart waarin de hoge tonen sneller uitsterven dan de lage. Een dub-ping-pong-echo waarin elke herhaling donkerder en dunner wordt. En drie HRTF-banen die langzaam om je hoofd draaien, voor het luchtkoor en de glaskorrels. Dieren krijgen elk een vaste plek om je heen, soms achter je.
 

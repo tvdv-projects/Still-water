@@ -36,8 +36,16 @@ export function createGroove({ ac, music, pulse, space, duck, noise }) {
 
   const bassF = filter('lowpass', 260, 0.7), bassOut = gain(1);
   bassF.connect(bassOut).connect(music);
-  const arpOut = gain(1);
-  arpOut.connect(music); arpOut.connect(gain(0.7)).connect(space.delay); arpOut.connect(gain(0.25)).connect(space.reverb);
+  // The sequence sits back in the room: little dry signal, more echo and reverb. All notes share one
+  // resonant low-pass that two slow LFOs keep moving (about 17 s and 70 s), so the sound keeps
+  // opening and closing on its own, independent of the notes.
+  const arpOut = gain(1), arpFilter = filter('lowpass', 950, 4.5);
+  arpFilter.connect(arpOut);
+  [[0.06, 380], [0.0143, 260]].forEach(([hz, depth]) => {
+    const lfo = ac.createOscillator(), d = gain(depth);
+    lfo.frequency.value = hz; lfo.connect(d).connect(arpFilter.frequency); lfo.start();
+  });
+  arpOut.connect(gain(0.55)).connect(music); arpOut.connect(gain(0.8)).connect(space.delay); arpOut.connect(gain(0.4)).connect(space.reverb);
   const drums = gain(1), drumRev = gain(0.22);
   drums.connect(pulse); drumRev.connect(space.reverb);
 
@@ -92,17 +100,22 @@ export function createGroove({ ac, music, pulse, space, duck, noise }) {
     o.start(t); o2.start(t); o.stop(t + len + 0.05); o2.stop(t + len + 0.05);
   }
 
+  /**
+   * One sequence note: a triangle with a little detuned saw on top (round, not buzzy), a gentle
+   * per-note filter pluck, a soft attack, and a slight left/right alternation.
+   */
   function arp(t, s, dur, arousal) {
-    const f = st(s), g = gain(0), lp = filter('lowpass', 400, G.arpQ || 7);
-    const base = (300 + 1500 * (0.5 + 0.5 * Math.sin(sweep))) * (0.6 + 0.6 * arousal);
-    lp.frequency.setValueAtTime(base * 3.2, t); lp.frequency.setTargetAtTime(base, t + 0.005, 0.06);
-    [-6, 6].forEach((cents) => {
-      const o = ac.createOscillator();
-      o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = cents;
-      o.connect(lp); o.start(t); o.stop(t + dur + 0.3);
+    const f = st(s), g = gain(0), lp = filter('lowpass', 400, G.arpQ || 3);
+    const base = (260 + 700 * (0.5 + 0.5 * Math.sin(sweep))) * (0.7 + 0.5 * arousal);
+    lp.frequency.setValueAtTime(base * 1.8, t); lp.frequency.setTargetAtTime(base, t + 0.01, 0.09);
+    [['triangle', 0, 1], ['sawtooth', -7, 0.22], ['sawtooth', 7, 0.22]].forEach(([type, cents, level]) => {
+      const o = ac.createOscillator(), og = gain(level);
+      o.type = type; o.frequency.value = f; o.detune.value = cents;
+      o.connect(og).connect(lp); o.start(t); o.stop(t + dur + 0.4);
     });
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.02, t + 0.004); g.gain.setTargetAtTime(0, t + 0.01, dur * 0.35);
-    lp.connect(g).connect(arpOut);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.016, t + 0.018); g.gain.setTargetAtTime(0, t + 0.03, dur * 0.4);
+    if (ac.createStereoPanner) { const p = ac.createStereoPanner(); p.pan.value = arpI % 2 ? 0.3 : -0.3; lp.connect(g).connect(p).connect(arpFilter); }
+    else lp.connect(g).connect(arpFilter);
   }
 
   function playStep(s, t, chord, c, arousal) {

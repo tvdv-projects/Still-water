@@ -21,7 +21,7 @@ Elk profiel staat in `src/config/profiles.js` en bepaalt scène, muziekstijl, do
 
 ### Ontspannen focus
 - **Scène:** een bergmeer in het blauwe uur. Hoe rustiger je wordt, hoe meer de dageraad doorbreekt: de lucht kleurt warmer, de mist trekt op en de toppen vangen één voor één goudlicht, de hoogste eerst.
-- **Muziek (`warm`), Carbon Based Lifeforms zonder beat:** warme pads in D lydisch, lange basnoten, een synthsequence in achtsten door een resonerend filter dat langzaam opengaat, met echo. 80 BPM, of je hartslag.
+- **Muziek (`warm`), Carbon Based Lifeforms zonder beat:** warme pads in D lydisch, lange basnoten, een zachte, ronde synthsequence in achtsten die achter in de ruimte staat, door een filter dat met twee trage LFO's (ongeveer 17 en 70 seconden) open- en dichtgaat, met veel echo. 80 BPM, of je hartslag.
 - **Dieren:** zangvogels, een koekoek in de verte, een specht die op een boom roffelt.
 - **Binaural:** van 13–18 Hz naar 10 Hz (alfagebied, ontspannen alert).
 - **Doel:** hartslag licht omlaag.
