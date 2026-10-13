@@ -95,6 +95,7 @@ button[aria-pressed="true"]{background:rgba(236,228,214,.16);border-color:rgba(2
 .label{font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim)}
 .choices{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .note{font-size:.86rem;color:var(--ink-dim);line-height:1.5;max-width:26rem}
+.card .note.small{font-size:.74rem;opacity:.7}
 .help{width:100%;max-width:28rem;text-align:left;font-size:.86rem;line-height:1.5;color:var(--ink-dim);border:1px solid var(--line);border-radius:14px;background:var(--glass)}
 .help summary{cursor:pointer;padding:10px 14px;color:var(--ink);font-weight:500;list-style:none;text-align:center}
 .help summary::-webkit-details-marker{display:none}

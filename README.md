@@ -25,7 +25,7 @@ Een rustgevende wereld die reageert op je hartslag. Kies een profiel (slaap, ont
 - **Slaapstand** na een Slaap-sessie: het scherm wordt zwart en het geluid sterft in 15 minuten weg. Tik om wakker te worden.
 - **Testmodus** met een gesimuleerde hartslag (inclusief borstband-data), zodat je alles zonder horloge kunt proberen.
 
-Alles draait in de browser. Er is geen server en er gaat geen data het apparaat uit; je sessiegeschiedenis staat alleen in de lokale opslag van je browser.
+Alles draait in de browser. Er is geen server en er gaan geen gezondheidsgegevens het apparaat uit; je sessiegeschiedenis staat alleen in de lokale opslag van je browser. Het gebruik wordt anoniem geteld met [GoatCounter](https://www.goatcounter.com/) (zonder cookies): paginabezoeken en een paar gebeurtenissen, zoals welk profiel gestart is en of een sessie is afgemaakt. Het dashboard staat op https://stillwater.goatcounter.com.
 
 ## Gebruiken
 

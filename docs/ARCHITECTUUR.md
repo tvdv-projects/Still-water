@@ -13,6 +13,7 @@
 index.html              HTML-opbouw van de interface
 src/
   main.js               startpunt: initialiseert modules, draait de animatielus
+  analytics.js          anonieme gebruikstelling (GoatCounter-events)
   state.js              gedeelde app-state, ademhalingsstate, hartslagmetingen
   session.js            sessieverloop: rustmeting → sessie → overzicht
   config/
@@ -117,6 +118,18 @@ De muziekbus gaat door een zachte tapeverzadiging, die pieken afrondt in plaats 
 Bussen: `music`, `nature`, `pulse` (hartslagpuls, of beat en klikjes bij een groove) en `breath`, elk met een eigen schuifje in het geluidspaneel. Alles loopt via een compressor naar de uitgang.
 
 iOS: geluid start alleen na een tik. `audio.unlock()` wordt daarom synchroon in de klik-handler aangeroepen, nog vóór de bluetooth-kiezer. Een stil `<audio>`-element zorgt dat iOS de pagina als mediaweergave behandelt, zodat de stil-schakelaar het geluid niet dempt.
+
+## Gebruik tellen
+
+`index.html` laadt het script van GoatCounter, dat paginabezoeken telt zonder cookies of persoonsgegevens. `analytics.js` voegt events toe:
+
+| Event | Wanneer |
+|---|---|
+| `start/<profiel>/<test\|hartslagmeter>` | sessie begint |
+| `einde/<profiel>/<afgemaakt\|gestopt>/<borstband\|horloge\|test>` | sessie eindigt |
+| `einde/<profiel>/gestopt-tijdens-rustmeting` | gestopt in de eerste minuut |
+
+Hartslag, HRV en andere lichaamsgegevens worden nooit verstuurd. Op localhost telt GoatCounter niet, dus ontwikkelen vervuilt de cijfers niet.
 
 ## Ontwerpkeuzes en afwegingen
 

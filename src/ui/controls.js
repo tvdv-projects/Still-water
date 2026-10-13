@@ -1,6 +1,7 @@
 // Wires up every button: profile and duration on the intro card, connect / test,
 // stop (two taps), the sound panel and the binaural toggle.
 
+import { track } from '../analytics.js';
 import { audio } from '../audio/engine.js';
 import { store } from '../core/storage.js';
 import { connectHeartRate } from '../heart-rate/bluetooth.js';
@@ -65,7 +66,7 @@ function initStop() {
     armed = 0;
     $('stop').textContent = 'Stop';
     if (app.state === 'session' && app.samples.some((s) => s.t > CALIB_SECONDS)) finish(true);
-    else { audio.fade(0, 3); toIntro(); }
+    else { track(`einde/${app.profKey}/gestopt-tijdens-rustmeting`); audio.fade(0, 3); toIntro(); }
   });
 }
 

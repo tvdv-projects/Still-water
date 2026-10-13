@@ -6,6 +6,7 @@
 // (drop, steady or rise) turns the heart rate into calm, progress points and the speed at
 // which the beat is led from its starting frequency to the profile's target.
 
+import { track } from './analytics.js';
 import { audio } from './audio/engine.js';
 import { PROFILES } from './config/profiles.js';
 import { cleanRR, coherence, rmssd } from './core/hrv.js';
@@ -46,6 +47,7 @@ export function begin() {
   audio.start();
   try { navigator.wakeLock?.request('screen').catch(() => {}); } catch { /* not supported */ }
   msg('Ga gemakkelijk zitten. Ik meet eerst een minuut hoe je nu bent.', 6000);
+  track(`start/${app.profKey}/${app.source === 'sim' ? 'test' : 'hartslagmeter'}`);
 }
 
 export function toIntro() {
@@ -65,6 +67,8 @@ export function finish(early = false) {
   breath.on = false;
   const P = profile();
   buildSummary(P);
+  const src = app.source === 'sim' ? 'test' : app.hasRR ? 'borstband' : 'horloge';
+  track(`einde/${app.profKey}/${early ? 'gestopt' : 'afgemaakt'}/${src}`);
   if (P.fadeOut && !early) {
     // Slaap: no summary popping up. The screen fades to black and the sound dies away over 15 minutes.
     app.state = 'sleeping';
