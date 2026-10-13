@@ -33,7 +33,7 @@ Alles draait in de browser. Er is geen server en er gaat geen data het apparaat 
 2. Open de site:
    - op de **iPhone in Bluefy** (Safari en Chrome op iOS ondersteunen geen Web Bluetooth),
    - op **Android of desktop in Chrome of Edge**.
-3. Kies een profiel en een duur, tik op **Verbind hartslagmeter** en kies je horloge.
+3. Kies een profiel en een duur, tik op **Verbind hartslagmeter** en kies je horloge. Lukt het niet, open dan **Hulp bij koppelen** op het startscherm of lees [Hartslagmeter koppelen](docs/KOPPELEN.md).
 4. Gebruik oordopjes voor de binaural beats en zet Ruimtelijke audio uit.
 
 ## Ontwikkelen
@@ -52,6 +52,7 @@ Elke push naar `main` wordt door GitHub Pages direct gepubliceerd, en de CI-work
 
 - [Architectuur](docs/ARCHITECTUUR.md): opbouw, datastroom en ontwerpkeuzes
 - [Profielen, binaural beats en ademhaling](docs/PROFIELEN.md): wat elk profiel doet en waarom
+- [Hartslagmeter koppelen](docs/KOPPELEN.md): Garmin-horloge, HRM 200, Coros, problemen oplossen
 - [Ontwikkelen](docs/ONTWIKKELEN.md): lokaal draaien, testen, publiceren, een profiel of oefening toevoegen
 
 ## Disclaimer

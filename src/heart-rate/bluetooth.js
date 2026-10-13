@@ -72,7 +72,9 @@ export async function connectHeartRate(onConnected) {
     onConnected(device.name);
   } catch (e) {
     const name = e && e.name;
-    if (name === 'NotFoundError') note.textContent = 'Geen apparaat gekozen. Staat "Hartslag uitzenden" aan op je horloge?';
+    const help = document.getElementById('pairHelp');
+    if (help && name !== 'SecurityError' && name !== 'NotAllowedError') help.open = true;
+    if (name === 'NotFoundError') note.textContent = 'Geen apparaat gekozen. Staat "Hartslag uitzenden" aan op je horloge? Zie hieronder hoe je koppelt.';
     else if (name === 'SecurityError' || name === 'NotAllowedError') note.innerHTML = '<span class="err">Bluetooth is hier geblokkeerd.</span> Deze weergave staat geen bluetooth toe. Open je eigen online versie in Bluefy of Chrome, of probeer de testmodus.';
     else note.innerHTML = '<span class="err">Verbinden lukte niet.</span> Zet "Hartslag uitzenden" uit en weer aan, en probeer het opnieuw.';
   }
