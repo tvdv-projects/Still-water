@@ -213,52 +213,52 @@ const flights = [];
 const timers = { single: 8, crows: 40, geese: 25, buzzard: 35 };
 const buzzards = [];
 
-/** A buzzard circling on a thermal: slowly climbing, drifting across the sky, now and then a few wingbeats. */
+/**
+ * A buzzard circling on a thermal, modelled in 3D and seen from below at an angle, so its silhouette
+ * foreshortens naturally as it turns (a flat sprite rotating in the screen plane looks fake). It banks
+ * into the turn, holds its wings in a shallow V, climbs slowly and drifts across the sky; now and then
+ * a few slow wingbeats. Edges are slightly soft, as a bird a few hundred metres up would be.
+ */
+const VIEW_Z = 0.7, VIEW_Y = 0.71; // how depth and height project onto the screen (looking up ~45°)
 function spawnBuzzard() {
   const { W, H } = view;
-  const dir = Math.random() < 0.5 ? 1 : -1, rx = W * rnd(0.05, 0.08);
+  const dir = Math.random() < 0.5 ? 1 : -1, R = W * rnd(0.035, 0.055);
   buzzards.push({
-    dir, rx, ry: rx * 0.42, ang: rnd(0, TAU), w: (dir * TAU) / rnd(12, 17),
-    cx: dir > 0 ? -rx * 1.6 : W + rx * 1.6, cy: H * rnd(0.14, 0.3), vx: dir * W * rnd(0.007, 0.011),
-    s: clamp(W * 0.011, 9, 20), t: 0, calls: rnd(3, 8), flap: rnd(6, 14), flapT: 0,
+    dir, R, ang: rnd(0, TAU), w: (Math.random() < 0.5 ? 1 : -1) * TAU / rnd(16, 22),
+    cx: dir > 0 ? -R * 1.6 : W + R * 1.6, cy: H * rnd(0.14, 0.28), vx: dir * W * rnd(0.005, 0.008),
+    s: clamp(W * 0.0075, 6, 13), t: 0, calls: rnd(3, 8), flap: rnd(8, 16), flapT: 0, wob: rnd(0, TAU),
   });
 }
 
-/** Raptor silhouette seen from below: broad wings with fingered tips, a short fanned tail. */
-function drawBuzzard(x, y, s, heading, span, color) {
+function drawBuzzard(b, x, y, color) {
+  const { ang, s } = b, sg = Math.sign(b.w);
+  // Bank into the turn, with a little turbulence.
+  const bank = 0.32 + 0.07 * Math.sin(b.t * 1.1 + b.wob) + 0.04 * Math.sin(b.t * 2.3);
+  const cb = Math.cos(bank), sb = Math.sin(bank);
+  // Wing axis: radial (outwards) in the horizontal plane, tilted up on the outer side by the bank.
+  const wx = Math.cos(ang) * cb, wy = Math.sin(ang) * cb * VIEW_Z - sb * VIEW_Y;
+  // Heading: along the circle; the bank tilts it only slightly, ignore that.
+  const hx = -Math.sin(ang) * sg, hy = Math.cos(ang) * sg * VIEW_Z;
+  // Shallow V of the wings (dihedral), plus the beat of an occasional wingflap.
+  const flap = b.flapT > 0 ? Math.sin((1.5 - b.flapT) * 1.9 * TAU) * 0.35 : 0;
+  const P = (u, v) => {
+    const lift = (0.14 + flap) * Math.abs(u);
+    return [x + s * (u * wx + v * hx), y + s * (u * wy + v * hy) - s * lift * VIEW_Y];
+  };
+  // Planform of a common buzzard: broad wings with a rounded tip, short fanned tail, small head.
+  const shape = [
+    [0, 0.26], [0.12, 0.13], [0.55, 0.12], [0.88, 0.06], [0.97, -0.03], [0.93, -0.12], [0.6, -0.2], [0.18, -0.2],
+    [0.1, -0.24], [0.14, -0.46], [0, -0.5],
+  ];
+  const pts = [...shape.map(([u, v]) => P(u, v)), ...shape.slice(0, -1).reverse().map(([u, v]) => P(-u, v))];
   ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(1, 0.72); // seen at an angle from below
-  ctx.rotate(heading);
   ctx.fillStyle = color;
-  ctx.strokeStyle = color;
-  for (const side of [-1, 1]) {
-    const k = side * span;
-    ctx.beginPath();
-    ctx.moveTo(s * 0.12, side * s * 0.06);
-    ctx.quadraticCurveTo(s * 0.17, k * s * 0.5, s * 0.06, k * s * 0.84);
-    ctx.lineTo(-s * 0.17, k * s * 0.86);
-    ctx.quadraticCurveTo(-s * 0.38, k * s * 0.45, -s * 0.15, side * s * 0.07);
-    ctx.closePath();
-    ctx.fill();
-    // Primary feathers spread like fingers at the wingtip.
-    ctx.lineWidth = Math.max(0.8, s * 0.035);
-    ctx.lineCap = 'round';
-    for (let f = 0; f < 5; f++) {
-      const bx = s * (0.04 - f * 0.05), by = k * s * 0.84;
-      ctx.beginPath();
-      ctx.moveTo(bx, by);
-      ctx.lineTo(bx + s * (0.03 - f * 0.02), by + k * s * 0.11);
-      ctx.stroke();
-    }
-  }
-  // Body, head and a fanned tail.
-  ctx.beginPath(); ctx.ellipse(-s * 0.03, 0, s * 0.25, s * 0.09, 0, 0, TAU); ctx.fill();
-  ctx.beginPath(); ctx.arc(s * 0.21, 0, s * 0.07, 0, TAU); ctx.fill();
+  ctx.shadowColor = color;
+  ctx.shadowBlur = Math.max(1, s * 0.12);
   ctx.beginPath();
-  ctx.moveTo(-s * 0.22, -s * 0.07); ctx.lineTo(-s * 0.46, -s * 0.14);
-  ctx.quadraticCurveTo(-s * 0.53, 0, -s * 0.46, s * 0.14); ctx.lineTo(-s * 0.22, s * 0.07);
-  ctx.closePath(); ctx.fill();
+  pts.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+  ctx.closePath();
+  ctx.fill();
   ctx.restore();
 }
 
@@ -270,16 +270,13 @@ function updateBuzzards(dt, calm) {
     b.t += dt;
     b.ang += b.w * dt;
     b.cx += b.vx * dt;
-    b.cy -= dt * 0.8; // climbing on the thermal…
-    b.s *= 1 - dt * 0.0015; // …and so slowly getting smaller
-    if ((b.dir > 0 && b.cx - b.rx * 2 > W) || (b.dir < 0 && b.cx + b.rx * 2 < 0)) { buzzards.splice(i, 1); continue; }
-    const x = b.cx + Math.cos(b.ang) * b.rx, y = b.cy + Math.sin(b.ang) * b.ry;
-    const heading = Math.atan2(Math.cos(b.ang) * b.ry * b.w, -Math.sin(b.ang) * b.rx * b.w + b.vx);
-    // Now and then three slow wingbeats; otherwise soaring on flat wings.
-    if ((b.flap -= dt) <= 0) { b.flapT = 1.5; b.flap = rnd(10, 22); }
-    let span = 1;
-    if (b.flapT > 0) { b.flapT -= dt; span = 1 - 0.28 * Math.abs(Math.sin(b.flapT * TAU)); }
-    drawBuzzard(x, y, b.s, heading, span, `rgba(${34 + 18 * calm},${28 + 10 * calm},32,0.85)`);
+    b.cy -= dt * 0.6; // climbing on the thermal…
+    b.s *= 1 - dt * 0.001; // …and so slowly getting smaller
+    if ((b.dir > 0 && b.cx - b.R * 2 > W) || (b.dir < 0 && b.cx + b.R * 2 < 0)) { buzzards.splice(i, 1); continue; }
+    const x = b.cx + Math.cos(b.ang) * b.R, y = b.cy + Math.sin(b.ang) * b.R * VIEW_Z;
+    if ((b.flap -= dt) <= 0) { b.flapT = 1.5; b.flap = rnd(12, 26); }
+    if (b.flapT > 0) b.flapT -= dt;
+    drawBuzzard(b, x, y, `rgba(${42 + 22 * calm},${36 + 12 * calm},40,0.8)`);
     if (audio.on && (b.calls -= dt) <= 0 && x > 0 && x < W) {
       audio.call('buzzard', clamp((x / W) * 2 - 1, -0.95, 0.95));
       b.calls = rnd(7, 20);
@@ -309,8 +306,8 @@ function spawn(kind) {
     f.span = s; f.speed = W * rnd(0.045, 0.06); f.flap = 3.2; f.y = rnd(top + (low - top) * 0.4, low);
     f.members = [{ dx: 0, dy: 0, ph: 0 }, { dx: -s * rnd(4, 9), dy: s * rnd(-2, 2), ph: 1.7 }];
   } else {
-    const n = 1 + ((Math.random() * 3) | 0), s = clamp(W * 0.0028, 2.5, 5);
-    f.span = s; f.speed = W * rnd(0.06, 0.1); f.flap = rnd(7, 9); f.y = rnd(top, low); f.glide = true;
+    const n = 1 + ((Math.random() * 3) | 0), s = clamp(W * 0.0036, 3.5, 6);
+    f.span = s; f.speed = W * rnd(0.05, 0.08); f.flap = rnd(3.6, 4.4); f.y = rnd(top, low); f.glide = true;
     f.members = Array.from({ length: n }, (_, i) => ({ dx: -i * s * rnd(3, 6), dy: s * rnd(-3, 3), ph: rnd(0, TAU) }));
   }
   const extent = Math.max(...f.members.map((m) => -m.dx)) + f.span * 2;
@@ -323,6 +320,9 @@ function spawn(kind) {
 function drawBird(x, y, s, wing, dir, neck, color) {
   // Silhouette: two curved wings (wing −1..1: down..up) and a slim body, seen from the side and below.
   const tipY = -wing * s * 0.55, mid = -wing * s * 0.2;
+  ctx.save();
+  ctx.shadowColor = color;
+  ctx.shadowBlur = Math.max(0.8, s * 0.12); // slightly soft: distant birds are never razor-sharp
   ctx.fillStyle = color;
   ctx.beginPath();
   ctx.moveTo(x - s, y + tipY);
@@ -342,6 +342,7 @@ function drawBird(x, y, s, wing, dir, neck, color) {
     ctx.lineTo(x + dir * s * 0.75, y + s * 0.02);
     ctx.stroke();
   }
+  ctx.restore();
 }
 
 function updateBirds(dt, calm) {
@@ -368,12 +369,15 @@ function updateBirds(dt, calm) {
     const color = `rgba(${36 + 20 * calm},${30 + 12 * calm},${34},${haze})`;
     for (const m of f.members) {
       let wing;
+      let bob = 0;
       if (f.glide) {
-        // Small birds: bursts of quick flaps, then a short glide with folded wings.
-        const cyc = (f.t + m.ph) % 1.6;
-        wing = cyc < 0.9 ? Math.sin((f.t + m.ph) * f.flap * TAU) : -0.15;
+        // Small birds: bounding flight. Flapping fades smoothly into a short glide and back
+        // (no hard switch, which would read as flicker), and the bird rises and dips with it.
+        const env = 0.5 - 0.5 * Math.cos((f.t / 2.2) * TAU + m.ph);
+        wing = Math.sin((f.t + m.ph) * f.flap * TAU) * env * 0.85 - 0.12 * (1 - env);
+        bob = Math.sin((f.t / 2.2) * TAU + m.ph) * f.span * 0.8;
       } else wing = Math.sin((f.t + m.ph / TAU) * f.flap * TAU + m.ph);
-      drawBird(f.x + f.dir * m.dx, f.y + m.dy, f.span, wing, f.dir, f.kind === 'geese', color);
+      drawBird(f.x + f.dir * m.dx, f.y + m.dy + bob, f.span, wing, f.dir, f.kind === 'geese', color);
     }
   }
 }

@@ -183,7 +183,7 @@ function createEngine() {
 
   /** The heart pulse: a soft low thump (only in profiles without a groove). */
   function pulse() {
-    const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+    const t = ac.currentTime + 0.06, o = ac.createOscillator(), g = ac.createGain();
     o.frequency.setValueAtTime(58, t); o.frequency.exponentialRampToValueAtTime(41, t + 0.5);
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.045, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
     o.connect(g).connect(pulseBus); o.start(t); o.stop(t + 1);

@@ -10,6 +10,9 @@ const st = (s) => D2 * Math.pow(2, s / 12);
 const rand = (a, b) => a + Math.random() * (b - a);
 const pick = (arr) => arr[(Math.random() * arr.length) | 0];
 const LEVELS = [0.17, 0.14, 0.12, 0.1, 0.085];
+// Schedule new sounds slightly ahead: a sound whose start time has already passed begins halfway
+// through its fade-in, which clicks. 60 ms covers a busy main thread.
+const LEAD = 0.06;
 
 /**
  * @param {{ac: AudioContext, music: AudioNode, space: ReturnType<import('./space.js').createSpace>,
@@ -44,7 +47,7 @@ export function createAmbient({ ac, music, space, noise }) {
   function playChord(semis, fade) {
     const buf = patchBuffer(ac, S.pad);
     if (!buf) return false;
-    const n = ac.currentTime;
+    const n = ac.currentTime + LEAD;
     for (const v of notes) {
       v.g.gain.cancelScheduledValues(n);
       v.g.gain.setTargetAtTime(0, n, fade / 3);
@@ -68,7 +71,7 @@ export function createAmbient({ ac, music, space, noise }) {
   function air() {
     const buf = patchBuffer(ac, 'air');
     if (!buf || !chord.length) return;
-    const t = ac.currentTime, src = ac.createBufferSource(), g = gain(0), lp = filter('lowpass', 2600, 0.4);
+    const t = (ac.currentTime + LEAD), src = ac.createBufferSource(), g = gain(0), lp = filter('lowpass', 2600, 0.4);
     src.buffer = buf; src.loop = true;
     src.playbackRate.value = rateFor('air', st(pick(chord.slice(1)) + 12));
     const peak = 0.09 * S.air;
@@ -81,7 +84,7 @@ export function createAmbient({ ac, music, space, noise }) {
   function grain(c) {
     const buf = patchBuffer(ac, 'glass');
     if (!buf) return;
-    const t = ac.currentTime, src = ac.createBufferSource(), g = gain(0);
+    const t = (ac.currentTime + LEAD), src = ac.createBufferSource(), g = gain(0);
     const s = pick(S.scale) + (Math.random() < 0.35 ? 12 : 0);
     src.buffer = buf; src.loop = true;
     src.playbackRate.value = rateFor('glass', st(s + 36));
@@ -96,7 +99,7 @@ export function createAmbient({ ac, music, space, noise }) {
   function stab() {
     const buf = patchBuffer(ac, 'warm');
     if (!buf || !chord.length) return;
-    const t = ac.currentTime;
+    const t = (ac.currentTime + LEAD);
     chord.slice(1, 4).forEach((s) => {
       const src = ac.createBufferSource(), g = gain(0);
       src.buffer = buf; src.loop = true;
@@ -109,7 +112,7 @@ export function createAmbient({ ac, music, space, noise }) {
 
   /** A single vinyl crackle. */
   function crackle() {
-    const t = ac.currentTime, src = ac.createBufferSource(), g = gain(0), bp = filter('bandpass', rand(1500, 5500), 1.2);
+    const t = (ac.currentTime + LEAD), src = ac.createBufferSource(), g = gain(0), bp = filter('bandpass', rand(1500, 5500), 1.2);
     const p = ac.createStereoPanner ? ac.createStereoPanner() : null;
     src.buffer = noise.white; src.playbackRate.value = rand(0.6, 1.6);
     g.gain.setValueAtTime(rand(0.004, 0.014), t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.005);
@@ -163,7 +166,7 @@ export function createAmbient({ ac, music, space, noise }) {
     bell(f, vol, at) {
       const buf = patchBuffer(ac, 'glass');
       if (!buf) return;
-      const t = at || ac.currentTime, src = ac.createBufferSource(), g = gain(0);
+      const t = at || (ac.currentTime + LEAD), src = ac.createBufferSource(), g = gain(0);
       src.buffer = buf; src.loop = true; src.playbackRate.value = rateFor('glass', f);
       g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol * 1.6, t + 0.015); g.gain.setTargetAtTime(0, t + 0.02, 1.4);
       src.connect(g); g.connect(music); g.connect(space.reverb);

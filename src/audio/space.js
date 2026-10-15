@@ -41,14 +41,20 @@ export function createSpace(ac, out) {
       const p = ac.createPanner();
       p.panningModel = 'HRTF'; p.distanceModel = 'inverse'; p.refDistance = 1.5; p.rolloffFactor = 0.6;
       input.connect(p); node = p;
+      // Glide to each new position instead of jumping: jumps in an HRTF panner are heard as crackles,
+      // especially when the main thread is busy and updates arrive unevenly.
       p._set = (x, y, z) => {
-        if (p.positionX) { p.positionX.value = x; p.positionY.value = y; p.positionZ.value = z; } else p.setPosition(x, y, z);
+        if (p.positionX) {
+          const n = ac.currentTime;
+          p.positionX.setTargetAtTime(x, n, 0.12); p.positionY.setTargetAtTime(y, n, 0.12); p.positionZ.setTargetAtTime(z, n, 0.12);
+        } else p.setPosition(x, y, z);
       };
     }
     node.connect(out); node.connect(reverb);
     return { input, node, period: [47, 61, 83][i], phase: i * 2.1, radius: [2.2, 3, 4][i], tilt: [0.4, -0.2, 0.9][i] };
   });
 
+  let lastMove = -1;
   return {
     reverb,
     delay: delayIn,
@@ -61,7 +67,8 @@ export function createSpace(ac, out) {
     },
     /** Move the orbits; call every frame with animation time t. */
     tick(t) {
-      if (!hrtf) return;
+      if (!hrtf || t - lastMove < 0.1) return; // ten updates a second is plenty for orbits of a minute
+      lastMove = t;
       for (const o of orbits) {
         const a = o.phase + (t * 2 * Math.PI) / o.period;
         o.node._set(Math.sin(a) * o.radius, o.tilt + 0.4 * Math.sin(a * 0.5), -Math.cos(a) * o.radius);

@@ -52,7 +52,7 @@ export function createFauna(ac, out, rev) {
   return {
     /** A tawny owl: a short hoot, then a long wavering one. */
     owl() {
-      const t = ac.currentTime + 0.05, dest = place(0.5, rand(-0.7, 0.7), 0.8);
+      const t = ac.currentTime + 0.06, dest = place(0.5, rand(-0.7, 0.7), 0.8);
       [[0, 392, 0.32], [0.55, 352, 0.9]].forEach(([d, f, len]) => {
         const o = osc('sine', f), g = ac.createGain();
         vibrato(o, 6, 28, t + d, t + d + len + 0.05);
@@ -64,7 +64,7 @@ export function createFauna(ac, out, rev) {
 
     /** A small songbird: a few quick rising whistles. */
     bird() {
-      const t = ac.currentTime + 0.05, dest = place(0.45);
+      const t = ac.currentTime + 0.06, dest = place(0.45);
       const notes = 2 + ((Math.random() * 4) | 0), base = rand(2600, 3800);
       for (let k = 0, s = t; k < notes; k++, s += rand(0.11, 0.17)) {
         const o = osc('sine', base), g = ac.createGain();
@@ -76,7 +76,7 @@ export function createFauna(ac, out, rev) {
 
     /** A cricket chirps for a few seconds: triplets of tiny pulses, fading in and out. */
     cricket() {
-      const t = ac.currentTime + 0.05, dur = rand(4, 11), per = rand(0.55, 0.9);
+      const t = ac.currentTime + 0.06, dur = rand(4, 11), per = rand(0.55, 0.9);
       const o = osc('sine', rand(4200, 5100)), g = ac.createGain(), dest = place(0.25);
       g.gain.value = 0;
       for (let s = t; s < t + dur; s += per * rand(0.95, 1.05)) {
@@ -91,7 +91,7 @@ export function createFauna(ac, out, rev) {
 
     /** A frog: two to four low, rattling croaks. */
     frog() {
-      const t = ac.currentTime + 0.05, n = 2 + ((Math.random() * 3) | 0), f = rand(85, 135), dest = place(0.35);
+      const t = ac.currentTime + 0.06, n = 2 + ((Math.random() * 3) | 0), f = rand(85, 135), dest = place(0.35);
       for (let k = 0; k < n; k++) {
         const s = t + k * rand(0.45, 0.65), len = rand(0.18, 0.3);
         const o = osc('sawtooth', f), bp = ac.createBiquadFilter(), env = ac.createGain(), am = ac.createGain();
@@ -107,7 +107,7 @@ export function createFauna(ac, out, rev) {
 
     /** A loon across the lake: a slow wail that climbs, holds and falls back. Very wet, far away. */
     loon() {
-      const t = ac.currentTime + 0.05, f = rand(480, 560), dest = place(1, rand(-0.6, 0.6), 0.35);
+      const t = ac.currentTime + 0.06, f = rand(480, 560), dest = place(1, rand(-0.6, 0.6), 0.35);
       const o = osc('sine', f), o2 = osc('sine', f * 2), g2 = ac.createGain(), g = ac.createGain();
       g2.gain.value = 0.18;
       const fr = (x) => [o.frequency, o2.frequency].forEach((p, i) => x(p, i ? 2 : 1));
@@ -121,7 +121,7 @@ export function createFauna(ac, out, rev) {
 
     /** A cuckoo in the distance: a falling two-note call, a few times. */
     cuckoo() {
-      const t = ac.currentTime + 0.05, n = 2 + ((Math.random() * 4) | 0), f = rand(700, 780), dest = place(0.6);
+      const t = ac.currentTime + 0.06, n = 2 + ((Math.random() * 4) | 0), f = rand(700, 780), dest = place(0.6);
       for (let k = 0; k < n; k++) {
         [[0, f, 0.17], [0.3, f * 0.8, 0.3]].forEach(([d, fr, len]) => {
           const s = t + k * 0.95 + d, o = osc('sine', fr), g = ac.createGain();
@@ -134,7 +134,7 @@ export function createFauna(ac, out, rev) {
 
     /** A woodpecker drumming on a far tree: a quick roll of knocks that fades. */
     woodpecker() {
-      const t = ac.currentTime + 0.05, n = 12 + ((Math.random() * 8) | 0), gap = rand(0.045, 0.06), dest = place(0.5);
+      const t = ac.currentTime + 0.06, n = 12 + ((Math.random() * 8) | 0), gap = rand(0.045, 0.06), dest = place(0.5);
       const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = rand(900, 1400); bp.Q.value = 4;
       bp.connect(dest);
       for (let k = 0; k < n; k++) {
@@ -147,7 +147,7 @@ export function createFauna(ac, out, rev) {
 
     /** A nightjar churring: a long, soft mechanical trill. */
     nightjar() {
-      const t = ac.currentTime + 0.05, dur = rand(4, 8), dest = place(0.4);
+      const t = ac.currentTime + 0.06, dur = rand(4, 8), dest = place(0.4);
       const o = osc('triangle', rand(1050, 1200)), bp = ac.createBiquadFilter(), am = ac.createGain(), env = ac.createGain();
       const lfo = osc('square', rand(28, 36)), lg = ac.createGain();
       bp.type = 'bandpass'; bp.frequency.value = 1300; bp.Q.value = 2;
@@ -160,7 +160,7 @@ export function createFauna(ac, out, rev) {
 
     /** A wolf far away, sometimes answered by a second one. */
     wolf() {
-      const t0 = ac.currentTime + 0.05, voices = Math.random() < 0.5 ? 2 : 1;
+      const t0 = ac.currentTime + 0.06, voices = Math.random() < 0.5 ? 2 : 1;
       for (let v = 0; v < voices; v++) {
         const t = t0 + v * rand(1.2, 2), f = rand(330, 380) * (v ? 1.12 : 1), dest = place(1, rand(-0.8, 0.8), 0.3);
         const o = osc('triangle', f), lp = ac.createBiquadFilter(), g = ac.createGain();
@@ -178,7 +178,7 @@ export function createFauna(ac, out, rev) {
      * falling, sometimes a double. Called by the Ochtend scene while a skein flies over.
      */
     goose(pan = rand(-0.8, 0.8)) {
-      const t = ac.currentTime + 0.02, dest = place(0.45, pan, 0.9);
+      const t = ac.currentTime + 0.06, dest = place(0.45, pan, 0.9);
       const n = Math.random() < 0.3 ? 2 : 1, f0 = rand(330, 420);
       for (let k = 0; k < n; k++) {
         const s = t + k * rand(0.16, 0.22), len = rand(0.14, 0.22);
@@ -194,7 +194,7 @@ export function createFauna(ac, out, rev) {
 
     /** A carrion crow, from direction `pan`: two or three hoarse caws. */
     crow(pan = rand(-0.8, 0.8)) {
-      const t = ac.currentTime + 0.02, dest = place(0.55, pan, 0.8), n = 2 + ((Math.random() * 2) | 0), f0 = rand(520, 640);
+      const t = ac.currentTime + 0.06, dest = place(0.55, pan, 0.8), n = 2 + ((Math.random() * 2) | 0), f0 = rand(520, 640);
       for (let k = 0; k < n; k++) {
         const s = t + k * rand(0.42, 0.55), len = rand(0.26, 0.34);
         const o = osc('sawtooth', f0), bp = ac.createBiquadFilter(), g = ac.createGain();
@@ -210,7 +210,7 @@ export function createFauna(ac, out, rev) {
 
     /** A robin's autumn song: a thin, wistful trickle of high notes, rising and falling. */
     robin() {
-      const t = ac.currentTime + 0.05, dest = place(0.4);
+      const t = ac.currentTime + 0.06, dest = place(0.4);
       let s = t;
       const phrases = 2 + ((Math.random() * 3) | 0);
       for (let p = 0; p < phrases; p++) {
@@ -228,7 +228,7 @@ export function createFauna(ac, out, rev) {
 
     /** A buzzard's mewing call, from direction `pan`: a high, drawn-out "piiieeuw" that falls away. */
     buzzard(pan = rand(-0.8, 0.8)) {
-      const t = ac.currentTime + 0.02, dest = place(0.7, pan, 0.75), n = Math.random() < 0.35 ? 2 : 1;
+      const t = ac.currentTime + 0.06, dest = place(0.7, pan, 0.75), n = Math.random() < 0.35 ? 2 : 1;
       for (let k = 0; k < n; k++) {
         const s = t + k * rand(1.1, 1.6), len = rand(0.7, 1.0), f0 = rand(2300, 2700);
         const o = osc('sine', f0), o2 = osc('sine', f0 * 2), g = ac.createGain(), g2 = ac.createGain();
