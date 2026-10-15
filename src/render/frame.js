@@ -9,8 +9,9 @@ import * as campfire from './scenes/campfire.js';
 import * as candle from './scenes/candle.js';
 import * as dawn from './scenes/dawn.js';
 import * as lake from './scenes/lake.js';
+import * as morning from './scenes/morning.js';
 
-const SCENES = { lake, dawn, candle, campfire };
+const SCENES = { lake, dawn, candle, campfire, morning };
 const scene = () => SCENES[profile().scene];
 
 /** Reset all scenes so a new session starts from darkness / unlit lanterns. */
@@ -69,7 +70,7 @@ export function drawFrame(dt) {
 
   const vg = ctx.createRadialGradient(W / 2, H * 0.55, Math.min(W, H) * 0.3, W / 2, H * 0.55, Math.max(W, H) * 0.8);
   vg.addColorStop(0, 'rgba(2,4,10,0)');
-  vg.addColorStop(1, `rgba(2,4,10,${0.6 - 0.25 * app.calmVis})`);
+  vg.addColorStop(1, `rgba(2,4,10,${(0.6 - 0.25 * app.calmVis) * (scene().vignette ?? 1)})`);
   ctx.fillStyle = vg;
   ctx.fillRect(0, 0, W, H);
 

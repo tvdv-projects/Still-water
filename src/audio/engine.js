@@ -15,6 +15,7 @@
 // as rich and wide as they like.
 
 import { clamp, TAU } from '../core/math.js';
+import { gust } from '../core/wind.js';
 import { createAmbient } from './ambient.js';
 import { saturationCurve } from './dsp.js';
 import { createFauna } from './fauna.js';
@@ -244,11 +245,21 @@ function createEngine() {
       } else if (S.ocean) {
         const sw = Math.pow(0.5 + 0.5 * Math.sin((t * TAU) / 11), 2);
         lap.gain.setTargetAtTime(0.012 + 0.055 * sw, n, 0.6); lapF.frequency.setTargetAtTime(260 + 380 * sw, n, 0.6);
+      } else if (S.field) {
+        // An open field: no water, a low rustle of grass under the wind.
+        lap.gain.setTargetAtTime(0.006 + 0.012 * gust(t), n, 1.2); lapF.frequency.setTargetAtTime(300 + 200 * gust(t), n, 1.5);
       } else {
         lap.gain.setTargetAtTime(0.022 + 0.018 * r + 0.008 * Math.sin(t * 0.5), n, 0.8); lapF.frequency.setTargetAtTime(360 + 240 * r + 60 * Math.sin(t * 0.2), n, 1);
       }
-      wind.gain.setTargetAtTime(0.003 + 0.03 * r * (0.7 + 0.3 * Math.sin(t * 0.23)), n, 1.2);
-      windF.frequency.setTargetAtTime(500 + 300 * Math.sin(t * 0.11), n, 1);
+      if (S.field) {
+        // Wind over the field, in step with the grass swaying in the picture (same gust function).
+        const g = gust(t);
+        wind.gain.setTargetAtTime(0.008 + 0.03 * g, n, 1.5);
+        windF.frequency.setTargetAtTime(380 + 420 * g + 60 * Math.sin(t * 0.13), n, 1.5);
+      } else {
+        wind.gain.setTargetAtTime(0.003 + 0.03 * r * (0.7 + 0.3 * Math.sin(t * 0.23)), n, 1.2);
+        windF.frequency.setTargetAtTime(500 + 300 * Math.sin(t * 0.11), n, 1);
+      }
 
       if (carPending && n >= carPending.at) {
         carF = carPending.f; carPending = null;
@@ -271,6 +282,12 @@ function createEngine() {
         if (faunaNext[kind] == null) faunaNext[kind] = n + lo * 0.3 + Math.random() * (hi - lo) * 0.5;
         else if (n > faunaNext[kind]) { fauna[kind](); faunaNext[kind] = n + lo + Math.random() * (hi - lo); }
       }
+    },
+
+    /** An animal call from the picture (e.g. geese flying over), from direction pan (−1..1). */
+    call(kind, pan) {
+      if (!ac || !on || !fauna || typeof fauna[kind] !== 'function') return;
+      fauna[kind](pan);
     },
 
     /** Progress chime: one step up the style's scale per lantern / peak / segment. */

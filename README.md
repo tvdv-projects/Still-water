@@ -7,12 +7,13 @@ Een rustgevende wereld die reageert op je hartslag. Kies een profiel (slaap, ont
 ## Wat het doet
 
 - **Hartslag live via bluetooth.** Elke hartslagmeter met de standaard Heart Rate Service werkt, bijvoorbeeld een Garmin met *Hartslag uitzenden* aan, of een borstband.
-- **Vijf profielen**, elk met een eigen scène, muziekstijl, binaural-bereik en doel:
+- **Zes profielen**, elk met een eigen scène, muziekstijl, binaural-bereik en doel:
 
   | Profiel | Scène | Doel | Binaural |
   |---|---|---|---|
   | Slaap | nachtelijk meer, lantaarns doven | hartslag omlaag | → 2,5 Hz |
   | Ontspanning | nachtelijk meer, lantaarns gaan aan | hartslag omlaag | → 6 Hz |
+  | Ochtend | eigen foto van een mistig veld bij zonsopkomst, levend gemaakt | rustig, hartslag licht omlaag | → 8 Hz |
   | Ontspannen focus | bergmeer bij dageraad | hartslag licht omlaag | → 10 Hz |
   | Volle focus | kaarsvlam met inktcirkel | hartslag stabiel | → 14 Hz |
   | Energie | kampvuur dat oplaait | hartslag +5 tot +12 | ↑ 18 Hz |

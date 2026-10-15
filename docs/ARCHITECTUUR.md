@@ -20,6 +20,7 @@ src/
     profiles.js         de profielen (scène, stijl, doel, binaural, oefeningen, teksten)
     breathing.js        ademhalingstechnieken als reeksen [fase, seconden]
   core/                 pure logica, getest
+    wind.js             windvlagen, gedeeld door beeld en geluid van Ochtend
     math.js             clamp, lerp, easing, kleurhulpjes
     scoring.js          hartslag → rust, voortgang, binaural-tempo; samenvatting
     hrv.js              RR-intervallen: filteren, RMSSD, coherentie met de ademgids
@@ -42,9 +43,10 @@ src/
     frame.js            kiest de scène en tekent overlays
     breath-overlay.js   visuele ademgids (ring, vierkant, wisselende neusgaten)
     effects.js          optionele beeldeffecten (menu Beeld)
-    scenes/             lake.js, dawn.js, candle.js, campfire.js
+    scenes/             lake.js, dawn.js, candle.js, campfire.js, morning.js (foto + WebGL)
   ui/                   knoppen, HUD, meldingen, ademhalingsbalk, menu Beeld (fx-menu.js)
   styles/main.css
+assets/ochtend.jpg      foto voor Ochtend (sRGB, 4032 × 3024, lensreflectie weggeretoucheerd)
 tests/                  unit tests (node --test)
 scripts/                lokale server, import-controle
 ```
@@ -84,6 +86,16 @@ stateDiagram-v2
 - **Rustmeting (calib).** De binaural-zweving volgt live de hartslag via `profile.start(hr)`.
 - **Sessie.** Elke frame berekent `scoring.js` uit het verschil met de beginwaarde, volgens het doel van het profiel (`drop`, `steady` of `rise`), drie dingen: *calm* (beeld en geluid), *rate* (voortgangspunten per seconde) en *lead* (hoe snel de zweving naar het doel van het profiel zakt). Bij `drop` wordt *lead* negatief als je hartslag stijgt; bij `rise` (Energie) gebeurt dat juist boven de bovengrens van +15.
 - **Voortgang.** Er zijn 7 stappen per sessie (lantaarns, toppen, cirkeldelen). Alle 7 halen vraagt gemiddeld een *rate* van 0,5 over de hele sessie.
+
+## De Ochtend-scène: een foto die leeft
+
+`render/scenes/morning.js` tekent een echte foto met een WebGL-shader op een eigen canvas, en zet dat resultaat met `drawImage` op het gewone 2D-canvas; vogels, stofjes, effecten en ademgids komen daar in 2D overheen.
+
+- **Uitsnede:** de foto vult het scherm (cover), met een langzame zoom. Rechtop schuift de uitsnede naar het midden (pad en zon).
+- **Wind:** een kleine verschuiving van de pixels, alleen waar begroeiing is. Die plekken zijn met de hand opgemeten op de foto (horizon, pad als trapezium, de struik rechts); dichterbij beweegt meer.
+- **Mist, zon, lichtstralen:** procedurele ruis en een korte ray-march richting de zon, met screen-blending, zodat de foto nooit dichtgeschilderd wordt.
+- **Prestaties:** de shader rendert nooit meer pixels dan 2880 × 1800, en verlaagt de resolutie automatisch als de beelden trager dan ongeveer 40 per seconde worden. Zonder WebGL valt hij terug op de foto met een zachte zonnegloed.
+- **Een andere foto:** vervang `assets/ochtend.jpg` (sRGB, liefst ware grootte), verhoog `?v=` in de URL in `morning.js`, en meet de coördinaten in het commentaarblok bovenaan opnieuw op.
 
 ## Beeldeffecten
 

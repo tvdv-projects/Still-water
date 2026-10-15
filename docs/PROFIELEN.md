@@ -19,6 +19,14 @@ Elk profiel staat in `src/config/profiles.js` en bepaalt scène, muziekstijl, do
 - **Binaural:** van 9–14 Hz naar 6 Hz (thetagebied).
 - **Doel:** hartslag omlaag.
 
+### Ochtend
+- **Scène:** een echte foto (eigen opname, 4032 × 3024) van een mistig veld bij zonsopkomst, levend gemaakt met WebGL. Het gras en de struiken wiegen in de wind (alleen de begroeiing, vooraan meer dan in de verte, nooit het pad), mist drijft over het veld, de zon gloeit mee met je adem en geeft lichtstralen door de mist, en de hoge wolken schuiven heel langzaam. Verre vogels, groepen ganzen in V-formatie en een paar kraaien vliegen over; stofjes zweven in het zonlicht. Hoe rustiger je wordt, hoe warmer en lichter het beeld en hoe meer de mist oplost. Bij elke stap voortgang trekt er een vlucht ganzen over.
+- **Muziek (`morning`):** warme, zwevende pads in D lydisch, een luchtkoor en glaskorrels, zonder ritme.
+- **Natuur:** geen water; wind over het veld die precies tegelijk aanwakkert met het wiegende gras (dezelfde windfunctie, `core/wind.js`). Een roodborst (die zingt ook in de herfst), mezen, een specht in de verte. Ganzen en kraaien roepen alleen als ze in beeld vliegen, en van de kant waar ze vliegen.
+- **Binaural:** van 11–16 Hz naar 8 Hz (overgang alfa/theta: ontspannen, wakker).
+- **Doel:** hartslag licht omlaag. Gewoon even zitten.
+- **Op een laptop** vult de foto het scherm volledig; op een telefoon rechtop zie je het midden met het pad en de zon.
+
 ### Ontspannen focus
 - **Scène:** een bergmeer in het blauwe uur. Hoe rustiger je wordt, hoe meer de dageraad doorbreekt: de lucht kleurt warmer, de mist trekt op en de toppen vangen één voor één goudlicht, de hoogste eerst.
 - **Muziek (`warm`), Carbon Based Lifeforms zonder beat:** warme pads in D lydisch, lange basnoten, een zachte, ronde synthsequence in achtsten die achter in de ruimte staat, door een filter dat met twee trage LFO's (ongeveer 17 en 70 seconden) open- en dichtgaat, met veel echo. 80 BPM, of je hartslag.
@@ -42,7 +50,7 @@ Elk profiel staat in `src/config/profiles.js` en bepaalt scène, muziekstijl, do
 
 **Tempo.** In het geluidspaneel kies je **Tempo: vast** (standaard) of **Tempo: volgt hartslag**. Bij volgen verschuift het tempo hooguit 1 BPM per maat, binnen een bereik per profiel, zodat het nooit schokt.
 
-Alle dierengeluiden worden in code gemaakt (`src/audio/fauna.js`). Elk dier roept op een eigen willekeurig moment, meestal een keer per halve minuut tot een paar minuten, op een willekeurige plek links of rechts en met galm, zodat het klinkt alsof het om je heen en op afstand is. Ze lopen via het schuifje **Natuur**.
+Alle dierengeluiden worden in code gemaakt (`src/audio/fauna.js`). Elk dier roept op een eigen willekeurig moment (behalve bij Ochtend de ganzen en kraaien, die horen bij wat je ziet), meestal een keer per halve minuut tot een paar minuten, op een willekeurige plek links of rechts en met galm, zodat het klinkt alsof het om je heen en op afstand is. Ze lopen via het schuifje **Natuur**.
 
 ## Hoe de binaural beat je hartslag volgt
 

@@ -172,5 +172,58 @@ export function createFauna(ac, out, rev) {
         o.connect(lp).connect(g).connect(dest); o.start(t); o.stop(t + 4.2);
       }
     },
+
+    /**
+     * One goose honk, from direction `pan` (−1 left … 1 right): a short nasal "hönk", rising then
+     * falling, sometimes a double. Called by the Ochtend scene while a skein flies over.
+     */
+    goose(pan = rand(-0.8, 0.8)) {
+      const t = ac.currentTime + 0.02, dest = place(0.45, pan, 0.9);
+      const n = Math.random() < 0.3 ? 2 : 1, f0 = rand(330, 420);
+      for (let k = 0; k < n; k++) {
+        const s = t + k * rand(0.16, 0.22), len = rand(0.14, 0.22);
+        const o = osc('sawtooth', f0), bp = ac.createBiquadFilter(), bp2 = ac.createBiquadFilter(), g = ac.createGain(), g2 = ac.createGain();
+        bp.type = 'bandpass'; bp.frequency.value = rand(800, 1000); bp.Q.value = 2.5;
+        bp2.type = 'bandpass'; bp2.frequency.value = rand(1900, 2300); bp2.Q.value = 3; g2.gain.value = 0.45;
+        o.frequency.setValueAtTime(f0 * 0.9, s); o.frequency.linearRampToValueAtTime(f0 * 1.08, s + len * 0.35); o.frequency.linearRampToValueAtTime(f0 * 0.85, s + len);
+        g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(0.022, s + 0.02); g.gain.setValueAtTime(0.022, s + len * 0.6); g.gain.linearRampToValueAtTime(0, s + len);
+        o.connect(bp).connect(g); o.connect(bp2).connect(g2).connect(g); g.connect(dest);
+        o.start(s); o.stop(s + len + 0.05);
+      }
+    },
+
+    /** A carrion crow, from direction `pan`: two or three hoarse caws. */
+    crow(pan = rand(-0.8, 0.8)) {
+      const t = ac.currentTime + 0.02, dest = place(0.55, pan, 0.8), n = 2 + ((Math.random() * 2) | 0), f0 = rand(520, 640);
+      for (let k = 0; k < n; k++) {
+        const s = t + k * rand(0.42, 0.55), len = rand(0.26, 0.34);
+        const o = osc('sawtooth', f0), bp = ac.createBiquadFilter(), g = ac.createGain();
+        const rough = ac.createBufferSource(), rg = ac.createGain(), rbp = ac.createBiquadFilter();
+        bp.type = 'bandpass'; bp.frequency.value = 1300; bp.Q.value = 1.6;
+        rough.buffer = noise; rough.loop = true; rbp.type = 'bandpass'; rbp.frequency.value = 1500; rbp.Q.value = 0.8; rg.gain.value = 0.6;
+        o.frequency.setValueAtTime(f0 * 1.05, s); o.frequency.linearRampToValueAtTime(f0 * 0.82, s + len);
+        g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(0.02, s + 0.025); g.gain.setValueAtTime(0.02, s + len * 0.55); g.gain.linearRampToValueAtTime(0, s + len);
+        o.connect(bp).connect(g); rough.connect(rbp).connect(rg).connect(g); g.connect(dest);
+        o.start(s); o.stop(s + len + 0.05); rough.start(s); rough.stop(s + len + 0.05);
+      }
+    },
+
+    /** A robin's autumn song: a thin, wistful trickle of high notes, rising and falling. */
+    robin() {
+      const t = ac.currentTime + 0.05, dest = place(0.4);
+      let s = t;
+      const phrases = 2 + ((Math.random() * 3) | 0);
+      for (let p = 0; p < phrases; p++) {
+        const notes = 4 + ((Math.random() * 5) | 0), base = rand(3200, 5600);
+        for (let k = 0; k < notes; k++) {
+          const len = rand(0.05, 0.14), f = base * rand(0.75, 1.3), o = osc('sine', f), g = ac.createGain();
+          o.frequency.setValueAtTime(f, s); o.frequency.exponentialRampToValueAtTime(f * rand(0.8, 1.25), s + len);
+          g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(0.006, s + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, s + len);
+          o.connect(g).connect(dest); o.start(s); o.stop(s + len + 0.02);
+          s += len + rand(0.02, 0.07);
+        }
+        s += rand(0.5, 1.4);
+      }
+    },
   };
 }

@@ -17,7 +17,7 @@
 //
 // Other
 //  carrier      pitch (semitones above D2) of the pure tone that carries the binaural beat
-//  ocean / fire nature layer; fauna = animals and how often they call (fauna.js); nature = nature volume
+//  ocean / fire / field  nature layer (field = wind over grass, no water); fauna = animals and how often they call (fauna.js); nature = nature volume
 //  pulseOff     heart pulse plays at (heart rate − pulseOff) per minute; only without a groove
 //  chimeOct     octave of the progress chime; scale = notes for grains and chimes
 
@@ -42,6 +42,17 @@ export const STYLES = {
     hiss: 1, crackle: 1, bed: 0,
     carrier: 12, ocean: false, nature: 1, pulseOff: 6, chimeOct: 36,
     fauna: { cricket: [25, 50], frog: [45, 90], loon: [60, 120], owl: [80, 150] },
+  },
+  // Ochtend: just sitting in the morning sun. Warm, floating, bright pads in D lydian; no rhythm, no
+  // water; wind over the field, a robin and tits, crows and geese flying over (those come from the picture).
+  morning: {
+    chords: [[0, 7, 12, 16, 21], [-3, 4, 9, 14, 19], [2, 9, 14, 18, 23], [-5, 2, 9, 14, 18]],
+    scale: [0, 2, 4, 6, 7, 9, 11],
+    pad: 'pad', padLevel: 0.95, padBright: 1.05, padWet: 0.75, slow: 1.3,
+    air: 0.7, shimmer: 0.45, shimmerLevel: 0.85, grainEcho: 0.35, dub: null,
+    hiss: 0.35, crackle: 0, bed: 0,
+    carrier: 12, field: true, ocean: false, nature: 1, pulseOff: 6, chimeOct: 36,
+    fauna: { robin: [18, 45], bird: [12, 30], woodpecker: [90, 180] },
   },
   // Ontspannen focus: Carbon Based Lifeforms without a beat. Warm pads, long bass notes, filtered sequence.
   warm: {

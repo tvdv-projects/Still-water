@@ -15,7 +15,7 @@ describe('profiles', () => {
       });
       it('has a known music style and scene', () => {
         assert.ok(STYLES[P.style]);
-        assert.ok(['lake', 'dawn', 'candle', 'campfire'].includes(P.scene));
+        assert.ok(['lake', 'dawn', 'candle', 'campfire', 'morning'].includes(P.scene));
       });
       it('has a message for every progress step', () => {
         assert.equal(P.lines.length, STEPS);
@@ -35,7 +35,7 @@ describe('profiles', () => {
     assert.equal(PROFILES.volle.goal, 'steady');
     assert.equal(PROFILES.energie.goal, 'rise');
     assert.deepEqual(PROFILES.energie.band, [5, 12]);
-    ['slaap', 'rust', 'focus'].forEach((k) => assert.equal(PROFILES[k].goal, 'drop'));
+    ['slaap', 'rust', 'ochtend', 'focus'].forEach((k) => assert.equal(PROFILES[k].goal, 'drop'));
   });
   it('binaural targets go from deep (sleep) to alert (full focus)', () => {
     const t = ['slaap', 'rust', 'focus', 'volle'].map((k) => PROFILES[k].target);
