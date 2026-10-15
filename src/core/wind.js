@@ -1,5 +1,4 @@
-// A slow, irregular wind for the Ochtend scene, shared by the picture (swaying grass) and the sound
-// (wind over the field), so gusts are seen and heard at the same moment.
+// A slow, irregular wind for the sound of the Ochtend scene (wind over the field).
 
 /** Gust strength at animation time t (seconds), roughly 0.1..1, changing over tens of seconds. */
 export function gust(t) {

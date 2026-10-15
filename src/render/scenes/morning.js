@@ -1,21 +1,19 @@
 // Ochtend: a misty field at sunrise, from Thomas' own photo (assets/ochtend.jpg, 4032 × 3024).
 //
 // The photo is the scene; everything that moves is added on top of it, in the photo itself:
-//  - WebGL: grass and bushes swaying in the wind (a small displacement, only on vegetation, more in
-//    the foreground than far away, never on the path), mist drifting through the field, the sun's
-//    glow breathing with you, light shafts through the mist, and the high clouds drifting.
-//  - Canvas 2D: distant birds, skeins of geese and a pair of crows flying over (their calls come from
-//    where they fly), and specks of dust drifting in the low sunlight.
+//  - WebGL: mist drifting through the field, the sun's glow breathing with you, light shafts through
+//    the mist, and the high clouds drifting. (Swaying grass was tried and removed: warping a photo
+//    looks unreal.)
+//  - Canvas 2D: distant birds, skeins of geese, a pair of crows and now and then a buzzard circling
+//    on a thermal (their calls come from where they fly), and specks of dust in the low sunlight.
 // Calm brings warmth and light: the mist thins, the sun breaks through. Each progress step sends a
 // skein of geese over.
 //
 // Coordinates in the photo are normalised (0..1, y down). Measured on the photo:
 //  sun (0.607, 0.486) · treeline 0.52–0.56 · mist line 0.585 · ground from 0.59
-//  the path: centre 0.47 + (y − 0.6)·0.15, half width 0.025 + (y − 0.6)·0.54
 
 import { audio } from '../../audio/engine.js';
 import { clamp, rnd, TAU } from '../../core/math.js';
-import { gust } from '../../core/wind.js';
 import { breath } from '../../state.js';
 import { additive, ctx, glow, reducedMotion, view } from '../context.js';
 
@@ -58,7 +56,7 @@ varying vec2 vUv;
 uniform sampler2D uImg;
 uniform vec4 uWin;
 uniform vec2 uSun;
-uniform float uT, uCalm, uBreath, uProg, uGust, uMotion;
+uniform float uT, uCalm, uBreath, uProg, uMotion;
 
 float hash(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
 float noise(vec2 p){
@@ -71,17 +69,7 @@ vec3 screen(vec3 a, vec3 b){ return 1. - (1.-a)*(1.-b); }
 void main(){
   vec2 uv = uWin.xy + vUv*uWin.zw;
 
-  // Wind: only on vegetation, stronger close by, never on the path.
-  float pc = 0.47 + (uv.y-0.6)*0.15;
-  float pw = 0.025 + max(uv.y-0.6, 0.)*0.54;
-  float offPath = smoothstep(pw*0.8, pw*1.3, abs(uv.x-pc));
-  float ground = smoothstep(0.575, 0.62, uv.y);
-  float bush = smoothstep(0.765, 0.79, uv.x) * (1.-smoothstep(0.95, 0.975, uv.x)) * smoothstep(0.53, 0.56, uv.y);
-  float veg = max(ground*offPath, bush*(1.-smoothstep(0.7, 0.75, uv.y)));
-  float depth = mix(0.2, 1.0, smoothstep(0.58, 1.0, uv.y));
-  float sway = fbm(vec2(uv.x*5. - uT*0.32*(0.6+uGust), uv.y*2.5)) - 0.5;
-  float flutter = noise(vec2(uv.x*38. - uT*1.3, uv.y*22. + uT*0.2)) - 0.5;
-  vec2 disp = vec2(sway*0.0035 + flutter*0.0011*uGust, abs(flutter)*0.0005) * depth * (0.35 + uGust) * veg * uMotion;
+  vec2 disp = vec2(0.);
 
   // High clouds drift very slowly; the shift fades out before the warm band above the treeline.
   float sky = 1. - smoothstep(0.36, 0.47, uv.y);
@@ -164,7 +152,7 @@ function initGL() {
   const loc = gl.getAttribLocation(prog, 'aPos');
   gl.enableVertexAttribArray(loc);
   gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-  U = Object.fromEntries(['uImg', 'uWin', 'uSun', 'uT', 'uCalm', 'uBreath', 'uProg', 'uGust', 'uMotion'].map((n) => [n, gl.getUniformLocation(prog, n)]));
+  U = Object.fromEntries(['uImg', 'uWin', 'uSun', 'uT', 'uCalm', 'uBreath', 'uProg', 'uMotion'].map((n) => [n, gl.getUniformLocation(prog, n)]));
   glc.addEventListener('webglcontextlost', (e) => { e.preventDefault(); texReady = false; glFailed = true; });
 }
 
@@ -206,7 +194,6 @@ function renderGL(time, calm, pg, level) {
   gl.uniform1f(U.uCalm, calm);
   gl.uniform1f(U.uBreath, level);
   gl.uniform1f(U.uProg, pg);
-  gl.uniform1f(U.uGust, gust(time));
   gl.uniform1f(U.uMotion, reducedMotion ? 0.4 : 1);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   ctx.drawImage(glc, 0, 0, W, H);
@@ -223,7 +210,82 @@ function render2D(calm, level) {
 // ---------- birds ----------
 
 const flights = [];
-const timers = { single: 8, crows: 40, geese: 25 };
+const timers = { single: 8, crows: 40, geese: 25, buzzard: 35 };
+const buzzards = [];
+
+/** A buzzard circling on a thermal: slowly climbing, drifting across the sky, now and then a few wingbeats. */
+function spawnBuzzard() {
+  const { W, H } = view;
+  const dir = Math.random() < 0.5 ? 1 : -1, rx = W * rnd(0.05, 0.08);
+  buzzards.push({
+    dir, rx, ry: rx * 0.42, ang: rnd(0, TAU), w: (dir * TAU) / rnd(12, 17),
+    cx: dir > 0 ? -rx * 1.6 : W + rx * 1.6, cy: H * rnd(0.14, 0.3), vx: dir * W * rnd(0.007, 0.011),
+    s: clamp(W * 0.011, 9, 20), t: 0, calls: rnd(3, 8), flap: rnd(6, 14), flapT: 0,
+  });
+}
+
+/** Raptor silhouette seen from below: broad wings with fingered tips, a short fanned tail. */
+function drawBuzzard(x, y, s, heading, span, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(1, 0.72); // seen at an angle from below
+  ctx.rotate(heading);
+  ctx.fillStyle = color;
+  ctx.strokeStyle = color;
+  for (const side of [-1, 1]) {
+    const k = side * span;
+    ctx.beginPath();
+    ctx.moveTo(s * 0.12, side * s * 0.06);
+    ctx.quadraticCurveTo(s * 0.17, k * s * 0.5, s * 0.06, k * s * 0.84);
+    ctx.lineTo(-s * 0.17, k * s * 0.86);
+    ctx.quadraticCurveTo(-s * 0.38, k * s * 0.45, -s * 0.15, side * s * 0.07);
+    ctx.closePath();
+    ctx.fill();
+    // Primary feathers spread like fingers at the wingtip.
+    ctx.lineWidth = Math.max(0.8, s * 0.035);
+    ctx.lineCap = 'round';
+    for (let f = 0; f < 5; f++) {
+      const bx = s * (0.04 - f * 0.05), by = k * s * 0.84;
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.lineTo(bx + s * (0.03 - f * 0.02), by + k * s * 0.11);
+      ctx.stroke();
+    }
+  }
+  // Body, head and a fanned tail.
+  ctx.beginPath(); ctx.ellipse(-s * 0.03, 0, s * 0.25, s * 0.09, 0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(s * 0.21, 0, s * 0.07, 0, TAU); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-s * 0.22, -s * 0.07); ctx.lineTo(-s * 0.46, -s * 0.14);
+  ctx.quadraticCurveTo(-s * 0.53, 0, -s * 0.46, s * 0.14); ctx.lineTo(-s * 0.22, s * 0.07);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function updateBuzzards(dt, calm) {
+  const { W } = view;
+  if ((timers.buzzard -= dt) <= 0) { spawnBuzzard(); timers.buzzard = rnd(120, 240); }
+  for (let i = buzzards.length - 1; i >= 0; i--) {
+    const b = buzzards[i];
+    b.t += dt;
+    b.ang += b.w * dt;
+    b.cx += b.vx * dt;
+    b.cy -= dt * 0.8; // climbing on the thermal…
+    b.s *= 1 - dt * 0.0015; // …and so slowly getting smaller
+    if ((b.dir > 0 && b.cx - b.rx * 2 > W) || (b.dir < 0 && b.cx + b.rx * 2 < 0)) { buzzards.splice(i, 1); continue; }
+    const x = b.cx + Math.cos(b.ang) * b.rx, y = b.cy + Math.sin(b.ang) * b.ry;
+    const heading = Math.atan2(Math.cos(b.ang) * b.ry * b.w, -Math.sin(b.ang) * b.rx * b.w + b.vx);
+    // Now and then three slow wingbeats; otherwise soaring on flat wings.
+    if ((b.flap -= dt) <= 0) { b.flapT = 1.5; b.flap = rnd(10, 22); }
+    let span = 1;
+    if (b.flapT > 0) { b.flapT -= dt; span = 1 - 0.28 * Math.abs(Math.sin(b.flapT * TAU)); }
+    drawBuzzard(x, y, b.s, heading, span, `rgba(${34 + 18 * calm},${28 + 10 * calm},32,0.85)`);
+    if (audio.on && (b.calls -= dt) <= 0 && x > 0 && x < W) {
+      audio.call('buzzard', clamp((x / W) * 2 - 1, -0.95, 0.95));
+      b.calls = rnd(7, 20);
+    }
+  }
+}
 
 /** A flight crossing the sky. `members` are offsets in px from the leader, in flight direction. */
 function spawn(kind) {
@@ -284,7 +346,7 @@ function drawBird(x, y, s, wing, dir, neck, color) {
 
 function updateBirds(dt, calm) {
   const { W } = view;
-  for (const k of Object.keys(timers)) timers[k] -= dt;
+  for (const k of ['single', 'crows', 'geese']) timers[k] -= dt;
   if (timers.single <= 0) { spawn('single'); timers.single = rnd(14, 38); }
   if (timers.crows <= 0) { spawn('crows'); timers.crows = rnd(70, 150); }
   if (timers.geese <= 0) { spawn('geese'); timers.geese = rnd(90, 180); }
@@ -337,7 +399,8 @@ function drawMotes(time, calm) {
 
 export function reset() {
   flights.length = 0;
-  Object.assign(timers, { single: rnd(4, 10), crows: rnd(30, 60), geese: rnd(20, 40) });
+  buzzards.length = 0;
+  Object.assign(timers, { single: rnd(4, 10), crows: rnd(30, 60), geese: rnd(20, 40), buzzard: rnd(25, 50) });
 }
 
 /** Each progress step: a skein of geese flies over. */
@@ -381,5 +444,9 @@ export function draw({ dt, time, calm: c, progress: pg }) {
   }
   else render2D(c, level);
   drawMotes(time, c);
+  updateBuzzards(dt, c);
   updateBirds(dt, c);
 }
+
+/** For trying things out in the browser console: stilWater.morning.buzzard() etc. */
+export const visitors = { buzzard: spawnBuzzard, geese: () => spawn('geese'), crows: () => spawn('crows'), buzzards, flights };

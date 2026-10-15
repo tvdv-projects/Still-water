@@ -7,6 +7,7 @@ import { currentStep, stepBreath } from './core/breathing.js';
 import { initSimulator } from './heart-rate/simulator.js';
 import { resize } from './render/context.js';
 import { drawFrame } from './render/frame.js';
+import { visitors } from './render/scenes/morning.js';
 import { updateSession, updateSleep } from './session.js';
 import { app, breath } from './state.js';
 import { initBreathBar } from './ui/breath-bar.js';
@@ -53,4 +54,4 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 // Debug handle for the browser console and automated checks.
-window.stilWater = { app, breath, BREATHS };
+window.stilWater = { app, breath, BREATHS, morning: visitors };

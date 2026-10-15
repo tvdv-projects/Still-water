@@ -20,7 +20,7 @@ src/
     profiles.js         de profielen (scène, stijl, doel, binaural, oefeningen, teksten)
     breathing.js        ademhalingstechnieken als reeksen [fase, seconden]
   core/                 pure logica, getest
-    wind.js             windvlagen, gedeeld door beeld en geluid van Ochtend
+    wind.js             trage windvlagen voor het windgeluid van Ochtend
     math.js             clamp, lerp, easing, kleurhulpjes
     scoring.js          hartslag → rust, voortgang, binaural-tempo; samenvatting
     hrv.js              RR-intervallen: filteren, RMSSD, coherentie met de ademgids
@@ -92,7 +92,7 @@ stateDiagram-v2
 `render/scenes/morning.js` tekent een echte foto met een WebGL-shader op een eigen canvas, en zet dat resultaat met `drawImage` op het gewone 2D-canvas; vogels, stofjes, effecten en ademgids komen daar in 2D overheen.
 
 - **Uitsnede:** de foto vult het scherm (cover), met een langzame zoom. Rechtop schuift de uitsnede naar het midden (pad en zon).
-- **Wind:** een kleine verschuiving van de pixels, alleen waar begroeiing is. Die plekken zijn met de hand opgemeten op de foto (horizon, pad als trapezium, de struik rechts); dichterbij beweegt meer.
+- **Geen wiegend gras:** dat is geprobeerd (pixels verschuiven op de begroeiing), maar een foto vervormen oogt onecht. De beweging zit in mist, licht, wolken en vogels.
 - **Mist, zon, lichtstralen:** procedurele ruis en een korte ray-march richting de zon, met screen-blending, zodat de foto nooit dichtgeschilderd wordt.
 - **Prestaties:** de shader rendert nooit meer pixels dan 2880 × 1800, en verlaagt de resolutie automatisch als de beelden trager dan ongeveer 40 per seconde worden. Zonder WebGL valt hij terug op de foto met een zachte zonnegloed.
 - **Een andere foto:** vervang `assets/ochtend.jpg` (sRGB, liefst ware grootte), verhoog `?v=` in de URL in `morning.js`, en meet de coördinaten in het commentaarblok bovenaan opnieuw op.

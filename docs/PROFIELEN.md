@@ -20,9 +20,9 @@ Elk profiel staat in `src/config/profiles.js` en bepaalt scène, muziekstijl, do
 - **Doel:** hartslag omlaag.
 
 ### Ochtend
-- **Scène:** een echte foto (eigen opname, 4032 × 3024) van een mistig veld bij zonsopkomst, levend gemaakt met WebGL. Het gras en de struiken wiegen in de wind (alleen de begroeiing, vooraan meer dan in de verte, nooit het pad), mist drijft over het veld, de zon gloeit mee met je adem en geeft lichtstralen door de mist, en de hoge wolken schuiven heel langzaam. Verre vogels, groepen ganzen in V-formatie en een paar kraaien vliegen over; stofjes zweven in het zonlicht. Hoe rustiger je wordt, hoe warmer en lichter het beeld en hoe meer de mist oplost. Bij elke stap voortgang trekt er een vlucht ganzen over.
+- **Scène:** een echte foto (eigen opname, 4032 × 3024) van een mistig veld bij zonsopkomst, levend gemaakt met WebGL. Mist drijft over het veld, de zon gloeit mee met je adem en geeft lichtstralen door de mist, en de hoge wolken schuiven heel langzaam. Verre vogels, groepen ganzen in V-formatie, een paar kraaien en af en toe een buizerd die op een thermiekbel rondcirkelt en langzaam stijgt; stofjes zweven in het zonlicht. Hoe rustiger je wordt, hoe warmer en lichter het beeld en hoe meer de mist oplost. Bij elke stap voortgang trekt er een vlucht ganzen over.
 - **Muziek (`morning`):** warme, zwevende pads in D lydisch, een luchtkoor en glaskorrels, zonder ritme.
-- **Natuur:** geen water; wind over het veld die precies tegelijk aanwakkert met het wiegende gras (dezelfde windfunctie, `core/wind.js`). Een roodborst (die zingt ook in de herfst), mezen, een specht in de verte. Ganzen en kraaien roepen alleen als ze in beeld vliegen, en van de kant waar ze vliegen.
+- **Natuur:** geen water; wind over het veld met trage vlagen (`core/wind.js`). Een roodborst (die zingt ook in de herfst), mezen, een specht in de verte. Ganzen, kraaien en de buizerd roepen alleen als ze in beeld vliegen, en van de kant waar ze vliegen.
 - **Binaural:** van 11–16 Hz naar 8 Hz (overgang alfa/theta: ontspannen, wakker).
 - **Doel:** hartslag licht omlaag. Gewoon even zitten.
 - **Op een laptop** vult de foto het scherm volledig; op een telefoon rechtop zie je het midden met het pad en de zon.

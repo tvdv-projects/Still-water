@@ -225,5 +225,23 @@ export function createFauna(ac, out, rev) {
         s += rand(0.5, 1.4);
       }
     },
+
+    /** A buzzard's mewing call, from direction `pan`: a high, drawn-out "piiieeuw" that falls away. */
+    buzzard(pan = rand(-0.8, 0.8)) {
+      const t = ac.currentTime + 0.02, dest = place(0.7, pan, 0.75), n = Math.random() < 0.35 ? 2 : 1;
+      for (let k = 0; k < n; k++) {
+        const s = t + k * rand(1.1, 1.6), len = rand(0.7, 1.0), f0 = rand(2300, 2700);
+        const o = osc('sine', f0), o2 = osc('sine', f0 * 2), g = ac.createGain(), g2 = ac.createGain();
+        g2.gain.value = 0.15;
+        [o.frequency, o2.frequency].forEach((p, m) => {
+          const x = m ? 2 : 1;
+          p.setValueAtTime(f0 * 0.92 * x, s); p.linearRampToValueAtTime(f0 * x, s + 0.08); p.exponentialRampToValueAtTime(f0 * 0.6 * x, s + len);
+        });
+        vibrato(o, 18, 25, s, s + len); vibrato(o2, 18, 25, s, s + len);
+        g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(0.011, s + 0.06); g.gain.setValueAtTime(0.011, s + len * 0.4); g.gain.linearRampToValueAtTime(0, s + len);
+        o.connect(g); o2.connect(g2).connect(g); g.connect(dest);
+        [o, o2].forEach((x) => { x.start(s); x.stop(s + len + 0.05); });
+      }
+    },
   };
 }
