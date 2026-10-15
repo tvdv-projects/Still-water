@@ -15,6 +15,7 @@
 import { audio } from '../../audio/engine.js';
 import { clamp, rnd, TAU } from '../../core/math.js';
 import { breath } from '../../state.js';
+import { REE } from './ree-sprite.js';
 import { additive, ctx, glow, reducedMotion, view } from '../context.js';
 
 const IMG_W = 4032, IMG_H = 3024, IMG_ASPECT = IMG_W / IMG_H;
@@ -385,12 +386,12 @@ function updateBirds(dt, calm) {
 
 // ---------- a roe deer bounding through the far field ----------
 //
-// Roe deer seen far away in a misty field are mostly a back bobbing above the grass. So: a small
-// backlit silhouette, veiled by mist, legs fading into the grass, and hidden behind anything in the
-// foreground. That last part comes from the photo itself: an occlusion mask of everything that is
+// A real roe deer: one bound cut out of video footage (see ree-sprite.js), played as a loop while the
+// deer runs across the field. Far away, backlit, veiled by mist, legs fading into the grass, and hidden
+// behind anything in the foreground. That last part comes from the photo itself: an occlusion mask of everything that is
 // clearly darker than the misty field behind it (the bush on the right, weed tops), built once when
-// the photo has loaded. The deer crosses the open field right of the path, bounding in leaps, pauses
-// now and then to look around, and at the far end disappears into the mist.
+// the photo has loaded. The deer crosses the open field right of the path and at the far end
+// disappears into the mist.
 
 const FIELD = { x0: 0.6, x1: 1.04, y0: 0.6, y1: 0.625, eye: 0.577 };
 const MASK = { x: 0.55, y: 0.53, w: 0.45, h: 0.15 }; // part of the photo the mask covers (normalised)
@@ -427,132 +428,73 @@ function spawnDeer() {
   const gy = rnd(FIELD.y0, FIELD.y1);
   deer.push({
     dir: fromRight ? -1 : 1, gy, u: fromRight ? FIELD.x1 : FIELD.x0 + 0.02,
-    leap: 0, leapsLeft: 3 + ((Math.random() * 5) | 0), pause: 0, look: rnd(0, TAU),
-    fade: fromRight ? 1 : 0, leaving: false, t: 0,
+    phase: Math.random(), fade: fromRight ? 1 : 0, leaving: false, t: 0,
   });
 }
 
-/**
- * Side view of a roe deer, facing +x, hooves at y = 0, u = torso length (≈ 0.75 m; shoulder height
- * is about the same). Recognisable features at a distance: long upright neck, big ears, rump a little
- * higher than the shoulders, slender legs with the backward-pointing hock on the hind legs, no tail.
- * stretch: 0 = gathered (take-off / landing), 1 = stretched out in the air. headUp: head lifted 0..1.
- */
-function deerShape(g2, u, stand, stretch, headUp) {
-  const P = (x, y) => [x * u, y * u];
-  const s = stand ? 0 : stretch;
-  // Torso: deep chest, tucked belly, rump slightly higher.
-  g2.beginPath();
-  g2.moveTo(...P(-0.47, -0.9));
-  g2.quadraticCurveTo(...P(-0.2, -1.04), ...P(0.22, -0.98));
-  g2.quadraticCurveTo(...P(0.44, -0.95), ...P(0.44, -0.78));
-  g2.quadraticCurveTo(...P(0.42, -0.62), ...P(0.25, -0.6));
-  g2.quadraticCurveTo(...P(-0.05, -0.64), ...P(-0.3, -0.66));
-  g2.quadraticCurveTo(...P(-0.52, -0.7), ...P(-0.47, -0.9));
-  g2.fill();
-  // Neck and head: upright when standing, reaching forward in a bound.
-  const hx = stand ? 0.6 : 0.78, hy = stand ? -1.42 - 0.06 * headUp : -1.18;
-  g2.beginPath();
-  g2.moveTo(...P(0.18, -0.97));
-  g2.quadraticCurveTo(...P(hx - 0.12, (hy - 0.97) / 2 - 0.05), ...P(hx - 0.03, hy - 0.02));
-  g2.lineTo(...P(hx + 0.06, hy + 0.06));
-  g2.quadraticCurveTo(...P(hx - 0.02, (hy - 0.75) / 2 + 0.02), ...P(0.42, -0.78));
-  g2.closePath();
-  g2.fill();
-  g2.beginPath(); g2.ellipse(...P(hx + 0.07, hy + 0.05), 0.15 * u, 0.065 * u, stand ? 0.45 : 0.25, 0, TAU); g2.fill();
-  for (const [ex, rot] of [[-0.02, -0.5], [0.04, -0.15]]) {
-    g2.beginPath(); g2.ellipse(...P(hx + ex, hy - 0.08), 0.035 * u, 0.09 * u, rot, 0, TAU); g2.fill();
-  }
-  // Legs: thin, two or three segments.
-  g2.lineCap = 'round'; g2.lineJoin = 'round';
-  g2.lineWidth = Math.max(0.6, 0.05 * u);
-  const leg = (pts) => { g2.beginPath(); pts.forEach(([x, y], i) => (i ? g2.lineTo(x * u, y * u) : g2.moveTo(x * u, y * u))); g2.stroke(); };
-  if (stand) {
-    leg([[0.32, -0.66], [0.33, -0.33], [0.31, -0.06], [0.34, 0]]);
-    leg([[0.24, -0.66], [0.22, -0.33], [0.2, -0.06], [0.23, 0]]);
-    leg([[-0.3, -0.72], [-0.22, -0.46], [-0.37, -0.24], [-0.33, 0]]); // hind: stifle forward, hock back
-    leg([[-0.38, -0.72], [-0.3, -0.46], [-0.45, -0.24], [-0.41, 0]]);
-  } else {
-    // Front legs: under the chest when gathered, folded up and forward in the air.
-    leg([[0.32, -0.66], [0.36 + 0.2 * s, -0.4 + 0.06 * s], [0.26 + 0.3 * s, -0.14 - 0.1 * s], [0.3 + 0.32 * s, -0.08 - 0.12 * s]]);
-    leg([[0.25, -0.66], [0.27 + 0.18 * s, -0.4 + 0.04 * s], [0.18 + 0.28 * s, -0.12 - 0.08 * s], [0.22 + 0.3 * s, -0.06 - 0.1 * s]]);
-    // Hind legs: under the body when gathered, stretched far back after the push-off.
-    leg([[-0.32, -0.72], [-0.2 - 0.3 * s, -0.46 + 0.02 * s], [-0.36 - 0.42 * s, -0.24 - 0.02 * s], [-0.3 - 0.62 * s, -0.04 - 0.1 * s]]);
-    leg([[-0.38, -0.72], [-0.26 - 0.28 * s, -0.46], [-0.42 - 0.4 * s, -0.22], [-0.36 - 0.6 * s, -0.02 - 0.08 * s]]);
-  }
-}
+const reeSheet = new Image();
+let reeReady = false;
+reeSheet.onload = () => { reeReady = true; };
+reeSheet.src = new URL('../../../assets/ree.png?v=1', import.meta.url).href;
 
-function updateDeer(dt, calm) {
+function updateDeer(dt) {
   if ((deerTimer -= dt) <= 0) { spawnDeer(); deerTimer = rnd(150, 300); }
-  if (!deer.length || !occluder) return;
-  const { W, H } = view;
-  const LEAP = 0.62; // seconds per bound
+  if (!deer.length || !occluder || !reeReady) return;
+  const { W, H } = view, N = REE.frames.length, cycle = N / REE.fps; // one bound ≈ 0.53 s
   for (let i = deer.length - 1; i >= 0; i--) {
     const d = deer[i];
     d.t += dt;
-    // Size from perspective: further away (closer to eye level) is smaller. ~1.1 m body ≈ 0.018 photo widths at y 0.61.
+    // Size from perspective: further away (closer to eye level) is smaller. A roe deer stretched out
+    // is about 1.3 m; the path (≈3 m) is 0.05 photo widths wide at y 0.6.
     const depth = (d.gy - FIELD.eye) / (0.61 - FIELD.eye);
-    const uImg = 0.014 * depth; // torso length in photo widths
-    let stand = false, stretch = 0, lift = 0;
-    if (d.pause > 0) {
-      d.pause -= dt; stand = true;
-    } else {
-      d.leap += dt / LEAP;
-      if (d.leap >= 1) {
-        d.leap -= 1;
-        if (--d.leapsLeft <= 0) {
-          if (!d.leaving && Math.random() < 0.5) d.pause = rnd(2, 4.5); // stop and look around
-          d.leapsLeft = 3 + ((Math.random() * 6) | 0);
-        }
-      }
-      const ph = d.leap;
-      lift = Math.sin(Math.PI * ph) * 0.55; // height of the bound, in body lengths
-      stretch = Math.sin(Math.PI * clamp((ph - 0.08) / 0.8, 0, 1)); // gathered at take-off and landing
-      d.u += d.dir * (dt / LEAP) * 3.4 * uImg; // ~3.4 body lengths per bound
-    }
+    const lenImg = 0.021 * depth;
+    d.phase = (d.phase || 0) + dt / cycle;
+    d.u += d.dir * (dt / cycle) * (REE.advance / REE.bodyLen) * lenImg;
     // Leaving: running away from us into the mist, so smaller and fainter; or out of the picture.
     if (d.dir < 0 && d.u < FIELD.x0 + 0.03) d.leaving = true;
-    if (d.leaving) { d.fade -= dt / 2.2; d.gy -= dt * 0.004; }
-    else if (d.fade < 1) d.fade = Math.min(1, d.fade + dt / 2.5);
+    if (d.leaving) { d.fade -= dt / 2; d.gy -= dt * 0.004; }
+    else if (d.fade < 1) d.fade = Math.min(1, d.fade + dt / 1.5);
     if (d.fade <= 0 || d.u > FIELD.x1 + 0.02) { deer.splice(i, 1); continue; }
 
-    // Screen geometry.
-    const [fx, fy] = toScreen(d.u, d.gy);
-    const u = (uImg / win[2]) * W;
-    if (u < 2) continue;
-    const bw = Math.ceil(u * 2.6), bh = Math.ceil(u * 2.4);
-    const ox = fx - bw / 2, oy = fy - bh + u * 0.15 - lift * u;
+    const f = REE.frames[Math.floor(d.phase * N) % N];
+    const [gx, gy] = toScreen(d.u, d.gy);
+    const k = ((lenImg / win[2]) * W) / REE.bodyLen; // sprite px → screen px
+    if (REE.bodyLen * k < 4) continue;
+    // Torso centre on screen: on the path, plus this frame's bounce and surge; hooves meet the ground.
+    const tx = gx + d.dir * f.dx * k, ty = gy - (REE.ground - f.dy) * k;
+    const left = d.dir > 0 ? tx - f.cx * k : tx - (f.w - f.cx) * k, top = ty - f.cy * k;
+    const bw = Math.ceil(f.w * k) + 2, bh = Math.ceil(f.h * k) + 2;
     if (!deerBuf) deerBuf = document.createElement('canvas');
     const pr = Math.min(view.DPR, 2);
     deerBuf.width = Math.ceil(bw * pr); deerBuf.height = Math.ceil(bh * pr);
     const g2 = deerBuf.getContext('2d');
+    g2.imageSmoothingQuality = 'high';
     g2.setTransform(pr, 0, 0, pr, 0, 0);
-    // Backlit and seen through mist: a dark brown softened towards the colour of the mist.
-    const haze = 0.42 - 0.12 * clamp(depth - 1, -1, 1);
-    const col = [58 + (214 - 58) * haze, 36 + (146 - 36) * haze, 22 + (78 - 22) * haze].map(Math.round).join(',');
-    g2.fillStyle = g2.strokeStyle = `rgb(${col})`;
-    g2.shadowColor = `rgb(${col})`; g2.shadowBlur = Math.max(0.6, u * 0.05) * pr; // not razor-sharp at this distance
-    g2.save(); g2.translate(bw / 2, bh - u * 0.15); g2.scale(d.dir, 1);
-    deerShape(g2, u, stand, stretch, stand ? Math.sin(d.t * 0.9 + d.look) : 0);
+    g2.save();
+    if (d.dir < 0) { g2.translate(f.w * k, 0); g2.scale(-1, 1); }
+    g2.drawImage(reeSheet, f.x, f.y, f.w, f.h, 0, 0, f.w * k, f.h * k);
     g2.restore();
-    // Legs disappear into grass and mist: fade out towards the ground line (in screen space, so a
-    // bound lifts the deer out of the grass).
+    // Seen through mist: veil the colours towards the mist, more when further away.
+    const haze = clamp(0.38 - 0.1 * (depth - 1), 0.25, 0.55);
+    g2.globalCompositeOperation = 'source-atop';
+    g2.fillStyle = `rgba(214,146,80,${haze})`;
+    g2.fillRect(0, 0, bw, bh);
+    // Legs disappear into grass and mist near the ground line.
     g2.setTransform(1, 0, 0, 1, 0, 0);
     g2.globalCompositeOperation = 'destination-out';
-    const groundY = (fy - oy) * pr;
-    const gr = g2.createLinearGradient(0, groundY - u * 0.6 * pr, 0, groundY);
+    const groundY = (gy - top) * pr, legLen = 0.32 * REE.bodyLen * k * pr;
+    const gr = g2.createLinearGradient(0, groundY - legLen, 0, groundY);
     gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.85)');
     g2.fillStyle = gr; g2.fillRect(0, 0, deerBuf.width, deerBuf.height);
     // Hidden behind whatever the photo has in front of the field.
-    const ix = win[0] + (ox / W) * win[2], iy = win[1] + (oy / H) * win[3];
+    const ix = win[0] + (left / W) * win[2], iy = win[1] + (top / H) * win[3];
     const iw = (bw / W) * win[2], ih = (bh / H) * win[3];
-    const mx = ((ix - MASK.x) / MASK.w) * occluder.width, my = ((iy - MASK.y) / MASK.h) * occluder.height;
-    const mw = (iw / MASK.w) * occluder.width, mh = (ih / MASK.h) * occluder.height;
-    g2.drawImage(occluder, mx, my, mw, mh, 0, 0, deerBuf.width, deerBuf.height);
+    g2.drawImage(occluder, ((ix - MASK.x) / MASK.w) * occluder.width, ((iy - MASK.y) / MASK.h) * occluder.height,
+      (iw / MASK.w) * occluder.width, (ih / MASK.h) * occluder.height, 0, 0, deerBuf.width, deerBuf.height);
     g2.globalCompositeOperation = 'source-over';
     ctx.save();
-    ctx.globalAlpha = 0.9 * clamp(d.fade, 0, 1);
-    ctx.drawImage(deerBuf, ox, oy, bw, bh);
+    ctx.globalAlpha = 0.92 * clamp(d.fade, 0, 1);
+    ctx.drawImage(deerBuf, left, top, bw, bh);
     ctx.restore();
   }
 }
@@ -625,7 +567,7 @@ export function draw({ dt, time, calm: c, progress: pg }) {
   }
   else render2D(c, level);
   if (!occluder) buildOccluder();
-  updateDeer(dt, c);
+  updateDeer(dt);
   drawMotes(time, c);
   updateBuzzards(dt, c);
   updateBirds(dt, c);

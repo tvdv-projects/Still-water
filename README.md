@@ -56,6 +56,10 @@ Elke push naar `main` wordt door GitHub Pages direct gepubliceerd, en de CI-work
 - [Hartslagmeter koppelen](docs/KOPPELEN.md): Garmin-horloge, HRM 200, Coros, problemen oplossen
 - [Ontwikkelen](docs/ONTWIKKELEN.md): lokaal draaien, testen, publiceren, een profiel of oefening toevoegen
 
+## Beeldmateriaal
+
+De foto voor Ochtend is een eigen opname. De springende ree komt uit *Roe Deer Bounding Across Green Meadow* van Jozef Papp op [Pexels](https://www.pexels.com/video/roe-deer-bounding-across-green-meadow-30396358/), vrij te gebruiken.
+
 ## Disclaimer
 
 Stil Water is een persoonlijk ontspanningsproject, geen medisch hulpmiddel. Het wetenschappelijk bewijs voor binaural beats is wisselend; het spel laat je wel na elke sessie zien wat je hartslag deed, zodat je het zelf kunt beoordelen.

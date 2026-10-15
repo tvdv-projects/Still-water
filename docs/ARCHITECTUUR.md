@@ -47,6 +47,7 @@ src/
   ui/                   knoppen, HUD, meldingen, ademhalingsbalk, menu Beeld (fx-menu.js)
   styles/main.css
 assets/ochtend.jpg      foto voor Ochtend (sRGB, 4032 × 3024, lensreflectie weggeretoucheerd)
+assets/ree.png          16 beelden van een springende ree (uit video, zie scenes/ree-sprite.js)
 tests/                  unit tests (node --test)
 scripts/                lokale server, import-controle
 ```
@@ -96,6 +97,16 @@ stateDiagram-v2
 - **Mist, zon, lichtstralen:** procedurele ruis en een korte ray-march richting de zon, met screen-blending, zodat de foto nooit dichtgeschilderd wordt.
 - **Prestaties:** de shader rendert nooit meer pixels dan 2880 × 1800, en verlaagt de resolutie automatisch als de beelden trager dan ongeveer 40 per seconde worden. Zonder WebGL valt hij terug op de foto met een zachte zonnegloed.
 - **Een andere foto:** vervang `assets/ochtend.jpg` (sRGB, liefst ware grootte), verhoog `?v=` in de URL in `morning.js`, en meet de coördinaten in het commentaarblok bovenaan opnieuw op.
+
+### De ree
+
+Getekende dieren ogen als knuffels; de ree is daarom echt. Uit de Pexels-clip *Roe Deer Bounding Across Green Meadow* (Jozef Papp, vrij te gebruiken) is één volledige sprong uitgeknipt:
+
+1. De camera volgt de reeën, dus de achtergrond schuift. Per beeld is de camerabeweging bepaald (ORB-kenmerken, RANSAC), en de buurbeelden zijn daarop uitgelijnd. De mediaan daarvan is een schone achtergrond zonder ree.
+2. Het verschil met die achtergrond geeft de ree; GrabCut verfijnt de randen, en meegeknipte stukjes mist (koel van kleur) gaan eruit.
+3. De 16 beelden van één sprong (begin en eind sluiten aan) worden een sprite in tegenlichtkleuren. Van elk beeld is ook de echte op-en-neer- en voor-achterbeweging van de romp ten opzichte van de rechte looplijn bewaard, zodat de sprong klopt.
+
+In de scène loopt de sprong in een lus terwijl de ree over het veld gaat (2,6 lichaamslengtes per sprong, net als in de clip), met mist eroverheen, poten die in het gras vervagen en het voorgrondmasker uit de foto.
 
 ## Beeldeffecten
 
