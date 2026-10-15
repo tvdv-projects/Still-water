@@ -58,7 +58,7 @@ Elke push naar `main` wordt door GitHub Pages direct gepubliceerd, en de CI-work
 
 ## Beeldmateriaal
 
-De foto voor Ochtend is een eigen opname. De springende ree komt uit *Roe Deer Bounding Across Green Meadow* van Jozef Papp op [Pexels](https://www.pexels.com/video/roe-deer-bounding-across-green-meadow-30396358/), vrij te gebruiken.
+De foto voor Ochtend is een eigen opname.
 
 ## Disclaimer
 

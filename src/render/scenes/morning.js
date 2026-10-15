@@ -15,7 +15,6 @@
 import { audio } from '../../audio/engine.js';
 import { clamp, rnd, TAU } from '../../core/math.js';
 import { breath } from '../../state.js';
-import { REE } from './ree-sprite.js';
 import { additive, ctx, glow, reducedMotion, view } from '../context.js';
 
 const IMG_W = 4032, IMG_H = 3024, IMG_ASPECT = IMG_W / IMG_H;
@@ -27,7 +26,6 @@ const photo = new Image();
 let photoReady = false;
 photo.decoding = 'async';
 photo.onload = () => { photoReady = true; };
-// (the deer's occlusion mask is built from the photo on first use, see buildOccluder)
 photo.src = new URL('../../../assets/ochtend.jpg?v=1', import.meta.url).href;
 
 // ---------- the visible part of the photo (cover fit + a slow zoom) ----------
@@ -384,121 +382,6 @@ function updateBirds(dt, calm) {
   }
 }
 
-// ---------- a roe deer bounding through the far field ----------
-//
-// A real roe deer: one bound cut out of video footage (see ree-sprite.js), played as a loop while the
-// deer runs across the field. Far away, backlit, veiled by mist, legs fading into the grass, and hidden
-// behind anything in the foreground. That last part comes from the photo itself: an occlusion mask of everything that is
-// clearly darker than the misty field behind it (the bush on the right, weed tops), built once when
-// the photo has loaded. The deer crosses the open field right of the path and at the far end
-// disappears into the mist.
-
-const FIELD = { x0: 0.6, x1: 1.04, y0: 0.6, y1: 0.625, eye: 0.577 };
-const MASK = { x: 0.55, y: 0.53, w: 0.45, h: 0.15 }; // part of the photo the mask covers (normalised)
-let occluder = null; // canvas whose alpha = how much the photo hides what is behind it
-const deer = [];
-let deerTimer = rnd(60, 120);
-let deerBuf = null;
-
-function buildOccluder() {
-  const sx = Math.round(MASK.x * IMG_W), sy = Math.round(MASK.y * IMG_H), sw = Math.round(MASK.w * IMG_W), sh = Math.round(MASK.h * IMG_H);
-  const c = document.createElement('canvas');
-  c.width = sw; c.height = sh;
-  const g = c.getContext('2d', { willReadFrequently: true });
-  g.drawImage(photo, sx, sy, sw, sh, 0, 0, sw, sh);
-  const img = g.getImageData(0, 0, sw, sh), d = img.data;
-  // Per row, the brightness of the misty field; anything well below that is foreground.
-  for (let y = 0; y < sh; y++) {
-    const row = [];
-    for (let x = 0; x < sw; x += 7) { const i = (y * sw + x) * 4; row.push(0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2]); }
-    row.sort((a, b) => a - b);
-    const field = row[Math.floor(row.length * 0.7)];
-    for (let x = 0; x < sw; x++) {
-      const i = (y * sw + x) * 4, l = 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2];
-      const a = clamp((field * 0.72 - l) / (field * 0.2), 0, 1);
-      d[i] = d[i + 1] = d[i + 2] = 0; d[i + 3] = Math.round(a * 255);
-    }
-  }
-  g.putImageData(img, 0, 0);
-  occluder = c;
-}
-
-function spawnDeer() {
-  const fromRight = Math.random() < 0.6;
-  const gy = rnd(FIELD.y0, FIELD.y1);
-  deer.push({
-    dir: fromRight ? -1 : 1, gy, u: fromRight ? FIELD.x1 : FIELD.x0 + 0.02,
-    phase: Math.random(), fade: fromRight ? 1 : 0, leaving: false, t: 0,
-  });
-}
-
-const reeSheet = new Image();
-let reeReady = false;
-reeSheet.onload = () => { reeReady = true; };
-reeSheet.src = new URL('../../../assets/ree.png?v=1', import.meta.url).href;
-
-function updateDeer(dt) {
-  if ((deerTimer -= dt) <= 0) { spawnDeer(); deerTimer = rnd(150, 300); }
-  if (!deer.length || !occluder || !reeReady) return;
-  const { W, H } = view, N = REE.frames.length, cycle = N / REE.fps; // one bound ≈ 0.53 s
-  for (let i = deer.length - 1; i >= 0; i--) {
-    const d = deer[i];
-    d.t += dt;
-    // Size from perspective: further away (closer to eye level) is smaller. A roe deer stretched out
-    // is about 1.3 m; the path (≈3 m) is 0.05 photo widths wide at y 0.6.
-    const depth = (d.gy - FIELD.eye) / (0.61 - FIELD.eye);
-    const lenImg = 0.021 * depth;
-    d.phase = (d.phase || 0) + dt / cycle;
-    d.u += d.dir * (dt / cycle) * (REE.advance / REE.bodyLen) * lenImg;
-    // Leaving: running away from us into the mist, so smaller and fainter; or out of the picture.
-    if (d.dir < 0 && d.u < FIELD.x0 + 0.03) d.leaving = true;
-    if (d.leaving) { d.fade -= dt / 2; d.gy -= dt * 0.004; }
-    else if (d.fade < 1) d.fade = Math.min(1, d.fade + dt / 1.5);
-    if (d.fade <= 0 || d.u > FIELD.x1 + 0.02) { deer.splice(i, 1); continue; }
-
-    const f = REE.frames[Math.floor(d.phase * N) % N];
-    const [gx, gy] = toScreen(d.u, d.gy);
-    const k = ((lenImg / win[2]) * W) / REE.bodyLen; // sprite px → screen px
-    if (REE.bodyLen * k < 4) continue;
-    // Torso centre on screen: on the path, plus this frame's bounce and surge; hooves meet the ground.
-    const tx = gx + d.dir * f.dx * k, ty = gy - (REE.ground - f.dy) * k;
-    const left = d.dir > 0 ? tx - f.cx * k : tx - (f.w - f.cx) * k, top = ty - f.cy * k;
-    const bw = Math.ceil(f.w * k) + 2, bh = Math.ceil(f.h * k) + 2;
-    if (!deerBuf) deerBuf = document.createElement('canvas');
-    const pr = Math.min(view.DPR, 2);
-    deerBuf.width = Math.ceil(bw * pr); deerBuf.height = Math.ceil(bh * pr);
-    const g2 = deerBuf.getContext('2d');
-    g2.imageSmoothingQuality = 'high';
-    g2.setTransform(pr, 0, 0, pr, 0, 0);
-    g2.save();
-    if (d.dir < 0) { g2.translate(f.w * k, 0); g2.scale(-1, 1); }
-    g2.drawImage(reeSheet, f.x, f.y, f.w, f.h, 0, 0, f.w * k, f.h * k);
-    g2.restore();
-    // Seen through mist: veil the colours towards the mist, more when further away.
-    const haze = clamp(0.38 - 0.1 * (depth - 1), 0.25, 0.55);
-    g2.globalCompositeOperation = 'source-atop';
-    g2.fillStyle = `rgba(214,146,80,${haze})`;
-    g2.fillRect(0, 0, bw, bh);
-    // Legs disappear into grass and mist near the ground line.
-    g2.setTransform(1, 0, 0, 1, 0, 0);
-    g2.globalCompositeOperation = 'destination-out';
-    const groundY = (gy - top) * pr, legLen = 0.32 * REE.bodyLen * k * pr;
-    const gr = g2.createLinearGradient(0, groundY - legLen, 0, groundY);
-    gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.85)');
-    g2.fillStyle = gr; g2.fillRect(0, 0, deerBuf.width, deerBuf.height);
-    // Hidden behind whatever the photo has in front of the field.
-    const ix = win[0] + (left / W) * win[2], iy = win[1] + (top / H) * win[3];
-    const iw = (bw / W) * win[2], ih = (bh / H) * win[3];
-    g2.drawImage(occluder, ((ix - MASK.x) / MASK.w) * occluder.width, ((iy - MASK.y) / MASK.h) * occluder.height,
-      (iw / MASK.w) * occluder.width, (ih / MASK.h) * occluder.height, 0, 0, deerBuf.width, deerBuf.height);
-    g2.globalCompositeOperation = 'source-over';
-    ctx.save();
-    ctx.globalAlpha = 0.92 * clamp(d.fade, 0, 1);
-    ctx.drawImage(deerBuf, left, top, bw, bh);
-    ctx.restore();
-  }
-}
-
 // ---------- dust in the sunlight ----------
 
 const MOTES = Array.from({ length: 46 }, () => ({ a: rnd(0, TAU), r: Math.sqrt(Math.random()), ph: rnd(0, TAU), s: rnd(0.6, 1.8), v: rnd(0.6, 1.4) }));
@@ -521,8 +404,6 @@ function drawMotes(time, calm) {
 export function reset() {
   flights.length = 0;
   buzzards.length = 0;
-  deer.length = 0;
-  deerTimer = rnd(60, 120);
   Object.assign(timers, { single: rnd(4, 10), crows: rnd(30, 60), geese: rnd(20, 40), buzzard: rnd(25, 50) });
 }
 
@@ -566,12 +447,10 @@ export function draw({ dt, time, calm: c, progress: pg }) {
     renderGL(time, c, pg, level);
   }
   else render2D(c, level);
-  if (!occluder) buildOccluder();
-  updateDeer(dt);
   drawMotes(time, c);
   updateBuzzards(dt, c);
   updateBirds(dt, c);
 }
 
 /** For trying things out in the browser console: stilWater.morning.buzzard() etc. */
-export const visitors = { buzzard: spawnBuzzard, geese: () => spawn('geese'), crows: () => spawn('crows'), deer: spawnDeer, toScreen, buzzards, flights, deers: deer };
+export const visitors = { buzzard: spawnBuzzard, geese: () => spawn('geese'), crows: () => spawn('crows'), buzzards, flights };
