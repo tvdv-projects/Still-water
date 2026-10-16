@@ -1,17 +1,21 @@
 // Shared mutable application state. One plain object keeps the data flow easy to follow:
 // the session updates it, the scenes, HUD and audio read from it.
 
+import { freeProfile, normalizeFree } from './config/free.js';
 import { DEFAULT_PROFILE, PROFILES } from './config/profiles.js';
 import { createBreath } from './core/breathing.js';
 import { store } from './core/storage.js';
 
 const savedProfile = store.get('prof', DEFAULT_PROFILE);
+const validProfile = (k) => k === 'vrij' || !!PROFILES[k];
 
 export const app = {
   /** 'intro' | 'calib' | 'session' | 'done' */
   state: 'intro',
-  profKey: PROFILES[savedProfile] ? savedProfile : DEFAULT_PROFILE,
-  durMin: store.get('dur', 10),
+  profKey: validProfile(savedProfile) ? savedProfile : DEFAULT_PROFILE,
+  durMin: store.get('dur', 10), // 0 = unlimited (Vrij only)
+  /** Vrij: the chosen background, music and binaural settings (see config/free.js). */
+  free: normalizeFree(store.get('free', {})),
 
   // heart rate
   source: null, // 'ble' | 'sim' | null
@@ -57,7 +61,20 @@ export const app = {
 
 export const breath = createBreath();
 
-export const profile = () => PROFILES[app.profKey];
+let freeCache = null, freeKey = '';
+/** The active profile; for Vrij an object built from the free settings (rebuilt only when they change). */
+export function profile() {
+  if (app.profKey !== 'vrij') return PROFILES[app.profKey];
+  const key = JSON.stringify(app.free);
+  if (key !== freeKey) { freeKey = key; freeCache = freeProfile(app.free); }
+  return freeCache;
+}
+
+/** Change a free setting and remember it. */
+export function setFree(patch) {
+  app.free = normalizeFree({ ...app.free, ...patch });
+  store.set('free', app.free);
+}
 
 /** Seconds since the session (including calibration) started. */
 export const sessionClock = () => (app.state === 'intro' ? 0 : (performance.now() - app.t0) / 1000);

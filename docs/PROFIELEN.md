@@ -52,6 +52,17 @@ Elk profiel staat in `src/config/profiles.js` en bepaalt scène, muziekstijl, do
 
 Alle dierengeluiden worden in code gemaakt (`src/audio/fauna.js`). Elk dier roept op een eigen willekeurig moment (behalve bij Ochtend de ganzen en kraaien, die horen bij wat je ziet), meestal een keer per halve minuut tot een paar minuten, op een willekeurige plek links of rechts en met galm, zodat het klinkt alsof het om je heen en op afstand is. Ze lopen via het schuifje **Natuur**.
 
+### Vrij
+Geen profiel maar een speelruimte: je kiest alles zelf, en er is geen doel.
+- **Achtergrond:** een van de zes scènes (nachtmeer, nachtmeer diep in de nacht, ochtendveld, bergmeer, kaarsvlam, kampvuur).
+- **Muziek:** bij de achtergrond, of los te kiezen uit de zes muziekstijlen.
+- **Binaural:** *vast* op een frequentie van 1 tot 30 Hz, of *van – naar*: de beat schuift in de loop van de sessie geleidelijk van de ene naar de andere frequentie (bij een onbeperkte sessie in 20 minuten, daarna blijft hij staan). Bij het schuifje staat de band (delta, theta, alfa, bèta). Starten in Vrij zet binaural aan.
+- **Draaggolf:** de toonhoogte van de toon die de beat draagt, automatisch (bij de muziek) of zelf gekozen van 60 tot 400 Hz. Lager klinkt warmer, hoger helderder.
+- **Ademhaling:** alle oefeningen, in drie groepen (rustig, in balans, activerend). Op een smal scherm als keuzelijst.
+- **Duur:** 5 tot 30 minuten, of onbeperkt (dan stop je zelf).
+- **Hartslag:** met een meter meet het spel je beginhartslag in de eerste halve minuut op de achtergrond, zonder rustmeting vooraf. Het beeld leest je hartslag zoals de scène dat in haar eigen profiel doet (het kampvuur laait op als je opwarmt, de kaars wordt rustig bij een stabiele hartslag, de rest wordt rustiger en warmer als je hartslag zakt), maar er gaat niets stap voor stap aan. Zonder meter start je met **Start zonder meter** en blijft het beeld rustig.
+- **Na afloop:** duur, achtergrond en binaural-instelling, en met een meter je hartslag, HRV en coherentie.
+
 ## Hoe de binaural beat je hartslag volgt
 
 1. **Tijdens de rustmeting** rekent `profile.start(hr)` live een startfrequentie uit: hoe hoger je hartslag, hoe hoger de zweving. Het idee is eerst aansluiten bij waar je bent, en dan langzaam meenemen.

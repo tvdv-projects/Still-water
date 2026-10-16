@@ -2,6 +2,7 @@
 // Off by default every session; the last technique per profile is remembered.
 
 import { BREATHS } from '../config/breathing.js';
+import { BREATH_GROUPS, breathLabel } from '../config/free.js';
 import { selectBreath, startBreath } from '../core/breathing.js';
 import { store } from '../core/storage.js';
 import { app, breath, profile } from '../state.js';
@@ -24,18 +25,52 @@ export function buildChips() {
   const box = $('bChips');
   box.innerHTML = '';
   const selected = breath.pending || breath.key || preferred();
-  for (const key of profile().breaths) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = BREATHS[key].name;
-    b.dataset.k = key;
-    b.setAttribute('aria-pressed', String(key === selected));
-    b.addEventListener('click', () => {
-      store.set(prefKey(), key);
-      pressOnly([...box.children], b);
-      if (selectBreath(breath, key) === 'queued') msg('Wisselt na deze ademhaling.', 2200);
+  // Vrij offers every technique, grouped; the profiles offer their own three.
+  const groups = profile().free ? BREATH_GROUPS : [{ name: null, keys: profile().breaths }];
+  box.classList.toggle('grouped', !!profile().free);
+  if (profile().free && innerWidth < 600) {
+    // Small screens: thirteen buttons would bury the guide, so one grouped dropdown instead.
+    const sel = document.createElement('select');
+    sel.className = 'bsel';
+    sel.setAttribute('aria-label', 'Ademhalingsoefening');
+    for (const g of BREATH_GROUPS) {
+      const og = document.createElement('optgroup');
+      og.label = g.name;
+      g.keys.forEach((k) => og.append(new Option(breathLabel(k), k, false, k === selected)));
+      sel.append(og);
+    }
+    sel.addEventListener('change', () => {
+      store.set(prefKey(), sel.value);
+      if (selectBreath(breath, sel.value) === 'queued') msg('Wisselt na deze ademhaling.', 2200);
     });
-    box.appendChild(b);
+    box.appendChild(sel);
+    return;
+  }
+  for (const g of groups) {
+    // Vrij: one row per group, with its name in front.
+    let row = box;
+    if (g.name) {
+      row = document.createElement('div');
+      row.className = 'grp-row';
+      const l = document.createElement('span');
+      l.className = 'grp';
+      l.textContent = g.name;
+      row.appendChild(l);
+      box.appendChild(row);
+    }
+    for (const key of g.keys) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = profile().free ? breathLabel(key) : BREATHS[key].name;
+      b.dataset.k = key;
+      b.setAttribute('aria-pressed', String(key === selected));
+      b.addEventListener('click', () => {
+        store.set(prefKey(), key);
+        pressOnly([...box.querySelectorAll('button')], b);
+        if (selectBreath(breath, key) === 'queued') msg('Wisselt na deze ademhaling.', 2200);
+      });
+      row.appendChild(b);
+    }
   }
 }
 
@@ -55,7 +90,8 @@ export function initBreathBar() {
     $('bChips').hidden = !breath.on;
     if (breath.on) {
       const sel = $('bChips').querySelector('[aria-pressed="true"]');
-      beginTechnique(sel ? sel.dataset.k : preferred());
+      const dd = $('bChips').querySelector('select');
+      beginTechnique(dd ? dd.value : sel ? sel.dataset.k : preferred());
     }
   });
 }

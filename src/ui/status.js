@@ -8,4 +8,4 @@ export function setStatus(kind, text) {
   $('chipText').textContent = text;
 }
 
-export const CONNECT_NOTE = 'Zet op je Garmin <b>Hartslag uitzenden</b> aan en kies daarna je horloge in de lijst. Op de iPhone werkt dit in de Bluefy-browser.';
+export const CONNECT_NOTE = 'Zet op je horloge <b>Hartslag uitzenden</b> aan, of doe je borstband om, en kies hem daarna in de lijst. Op de iPhone werkt dit in de Bluefy-browser.';

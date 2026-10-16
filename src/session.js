@@ -8,6 +8,7 @@
 
 import { track } from './analytics.js';
 import { audio } from './audio/engine.js';
+import { beatFor, LOOKS } from './config/free.js';
 import { PROFILES } from './config/profiles.js';
 import { cleanRR, coherence, rmssd } from './core/hrv.js';
 import { clamp, lerp, smoothing } from './core/math.js';
@@ -40,14 +41,24 @@ export function begin() {
   $('breathBar').hidden = false;
   $('stop').hidden = false;
   resetProgress();
-  app.state = 'calib';
+  const P = profile();
+  // Vrij has no calibration minute: it starts straight away (with a heart-rate monitor the starting
+  // rate is measured in the background during the first half minute).
+  app.state = P.free ? 'session' : 'calib';
   app.t0 = performance.now();
-  audio.setStyle(profile().style);
+  if (P.free) {
+    audio.setCarrierHz(app.free.carrier);
+    app.beatNow = beatFor(app.free, 0, app.durMin);
+    audio.setBeat(app.beatNow);
+    $('readout').hidden = app.source === 'none';
+  } else audio.setCarrierHz(null);
+  audio.setStyle(P.style);
   audio.fade(0.9, 2);
   audio.start();
   try { navigator.wakeLock?.request('screen').catch(() => {}); } catch { /* not supported */ }
-  msg('Ga gemakkelijk zitten. Ik meet eerst een minuut hoe je nu bent.', 6000);
-  track(`start/${app.profKey}/${app.source === 'sim' ? 'test' : 'hartslagmeter'}`);
+  msg(P.free ? 'Vrij. Neem de tijd.' : 'Ga gemakkelijk zitten. Ik meet eerst een minuut hoe je nu bent.', P.free ? 4000 : 6000);
+  const src = app.source === 'sim' ? 'test' : app.source === 'none' ? 'zonder-meter' : 'hartslagmeter';
+  track(`start/${app.profKey}/${src}`);
 }
 
 export function toIntro() {
@@ -67,7 +78,7 @@ export function finish(early = false) {
   breath.on = false;
   const P = profile();
   buildSummary(P);
-  const src = app.source === 'sim' ? 'test' : app.hasRR ? 'borstband' : 'horloge';
+  const src = app.source === 'sim' ? 'test' : app.source === 'none' ? 'zonder-meter' : app.hasRR ? 'borstband' : 'horloge';
   track(`einde/${app.profKey}/${early ? 'gestopt' : 'afgemaakt'}/${src}`);
   if (P.fadeOut && !early) {
     // Slaap: no summary popping up. The screen fades to black and the sound dies away over 15 minutes.
@@ -97,7 +108,32 @@ export function updateSleep() {
   app.sleepDim = Math.min(1, 0.45 + ((performance.now() - sleepT0) / 60000) * 0.55);
 }
 
+function buildFreeSummary(P) {
+  const t = sessionClock(), mins = Math.max(1, Math.round(t / 60));
+  const look = LOOKS.find((l) => l.key === P.look)?.name ?? '';
+  const beat = app.free.mode === 'ramp' ? `${nl(app.free.from)} → ${nl(app.free.to)} Hz` : `${nl(app.free.beat)} Hz`;
+  $('sTitle').textContent = 'Vrij';
+  const hasHr = app.baseline != null && app.samples.length > 3;
+  const s = hasHr ? summarize(app.samples, app.baseline, t) : null;
+  $('sBase').textContent = hasHr ? Math.round(app.baseline) : '--';
+  $('sEnd').textContent = hasHr ? Math.round(s.end) : '--';
+  $('sDropL').textContent = 'Verschil';
+  $('sDrop').textContent = hasHr ? (s.drop >= 0 ? '−' : '+') + nl(Math.abs(s.drop)) : '--';
+  $('sMinL').textContent = 'Laagste';
+  $('sMin').textContent = hasHr && s.min != null ? Math.round(s.min) : '--';
+  $('sLamps').textContent = `${mins} ${mins === 1 ? 'minuut' : 'minuten'} · ${look} · binaural ${beat}` + (hasHr ? '' : ' · zonder hartslagmeter');
+  $('sHist').innerHTML = '';
+  const coh = app.coherenceLog.length ? app.coherenceLog.reduce((a, b) => a + b, 0) / app.coherenceLog.length : null;
+  const hrvEnd = rmssd(cleanRR(app.rr.filter((r) => r.t > t - 120).map((r) => r.ms)));
+  const parts = [];
+  if (app.rmssdBase != null && hrvEnd != null) parts.push(`HRV ${Math.round(app.rmssdBase)} → ${Math.round(hrvEnd)} ms`);
+  if (coh != null) parts.push(`gemiddelde coherentie tijdens de ademhaling ${Math.round(coh * 100)}%`);
+  $('sHrv').textContent = parts.join(' · ');
+  $('sHrv').hidden = !parts.length;
+}
+
 function buildSummary(P) {
+  if (P.free) return buildFreeSummary(P);
   const s = summarize(app.samples, app.baseline, sessionClock());
   $('sTitle').textContent = P.title;
   $('sBase').textContent = Math.round(app.baseline);
@@ -164,11 +200,51 @@ function updateHrv(dt, t) {
   }
 }
 
+/**
+ * Vrij: no goal, no progress. The beat follows the chosen setting; the scene follows your heart the
+ * way it does in its own profile (if there is a heart-rate monitor), otherwise it simply stays calm.
+ */
+function updateFree(dt, t, P) {
+  if (app.baseline == null && t > 30) {
+    const cs = app.samples.filter((s) => s.t > 5);
+    if (cs.length >= 5) {
+      app.baseline = cs.reduce((a, s) => a + s.hr, 0) / cs.length;
+      app.rmssdBase = rmssd(cleanRR(app.rr.filter((r) => r.t > 5).map((r) => r.ms)));
+    }
+  }
+  let calm = 0.55;
+  if (app.baseline != null && app.hrS != null) {
+    const diff = app.baseline - app.hrS;
+    if (P.sceneGoal === 'rise') calm = riseScore(-diff, P.band).calm;
+    else if (P.sceneGoal === 'steady') {
+      sdTimer -= dt;
+      if (sdTimer <= 0) {
+        sdTimer = 1;
+        const recent = app.samples.filter((s) => s.t > t - 30).map((s) => s.hr);
+        if (recent.length > 4) app.sd = stdDev(recent);
+      }
+      const sc = steadyScore(diff, app.sd);
+      app.stability = sc.stability;
+      calm = sc.calm;
+    } else calm = dropScore(diff).calm;
+  }
+  app.calm = calm;
+  app.beatNow = beatFor(app.free, t, app.durMin);
+  audio.setBeat(app.beatNow);
+  if (app.durMin > 0 && t >= app.durMin * 60) finish();
+}
+
 /** Called every frame while calibrating or in a session. */
 export function updateSession(dt) {
   if (app.latestHr != null) app.hrS = app.hrS == null ? app.latestHr : app.hrS + (app.latestHr - app.hrS) * smoothing(dt, 6);
   const t = sessionClock(), P = profile();
   updateHrv(dt, t);
+  if (P.free) {
+    if (app.state === 'session') updateFree(dt, t, P);
+    app.calmVis = lerp(app.calmVis, app.calm, smoothing(dt, 4));
+    app.progVis = lerp(app.progVis, 0, smoothing(dt, 2));
+    return;
+  }
 
   if (app.state === 'calib') {
     app.calm = lerp(app.calm, 0.3, dt * 0.5);

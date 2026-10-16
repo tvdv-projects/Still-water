@@ -18,6 +18,7 @@ src/
   session.js            sessieverloop: rustmeting → sessie → overzicht
   config/
     profiles.js         de profielen (scène, stijl, doel, binaural, oefeningen, teksten)
+    free.js             Vrij: keuzes, en een profiel-object gebouwd uit de instellingen
     breathing.js        ademhalingstechnieken als reeksen [fase, seconden]
   core/                 pure logica, getest
     wind.js             trage windvlagen voor het windgeluid van Ochtend
@@ -68,6 +69,10 @@ flowchart LR
 ```
 
 `main.js` draait één `requestAnimationFrame`-lus die in vaste volgorde de sessie bijwerkt, de ademgids een stap verder zet, het beeld tekent, de HUD bijwerkt en de audio-parameters aanpast.
+
+## Vrij
+
+`state.profile()` geeft voor Vrij een object met dezelfde vorm als een profiel, gebouwd uit de opgeslagen instellingen (`config/free.js`, localStorage `stilwater.free`), zodat scènes, HUD en ademhalingsbalk er niets apart voor hoeven te doen. Het heeft `free: true`, `goal: 'free'` en `sceneGoal` (het doel van het profiel waar de achtergrond vandaan komt). In `session.js` slaat Vrij de rustmeting over: `updateFree` zet de beat uit de instelling (`beatFor`), berekent *calm* met de scoring van `sceneGoal` zodra er een beginhartslag is, en kent geen punten of stappen. De draaggolf kan worden vastgezet met `audio.setCarrierHz`.
 
 ## Sessieverloop
 

@@ -96,6 +96,23 @@ button[aria-pressed="true"]{background:rgba(236,228,214,.16);border-color:rgba(2
 .choices{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .note{font-size:.86rem;color:var(--ink-dim);line-height:1.5;max-width:26rem}
 .card .note.small{font-size:.74rem;opacity:.7}
+.free{display:grid;grid-template-columns:auto 1fr;gap:10px 12px;align-items:center;width:100%;max-width:28rem;text-align:left;
+  border:1px solid var(--line);border-radius:14px;background:var(--glass);padding:14px}
+.free label,.free .flabel{font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-dim)}
+.free select{font:500 .86rem var(--body);color:var(--ink);background:var(--glass-hi);border:1px solid var(--line);border-radius:10px;padding:7px 10px;min-width:0}
+.free select option{color:#111}
+.free .choices.small{justify-content:flex-start}
+.free .choices.small button{padding:6px 12px;font-size:.8rem}
+.free .frow{grid-column:1 / -1;display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center}
+.free .frow:has(button){grid-template-columns:1fr auto auto}
+.free input[type=range]{width:100%;accent-color:var(--calm)}
+.free output{font-size:.8rem;color:var(--ink);font-variant-numeric:tabular-nums;min-width:9.5em}
+.free .frow button{padding:5px 10px;font-size:.76rem}
+.breath .bsel{font:500 .86rem var(--body);color:var(--ink);background:var(--glass-hi);border:1px solid var(--line);border-radius:999px;padding:8px 14px;max-width:100%}
+.breath .bsel option,.breath .bsel optgroup{color:#111}
+.breath .choices.grouped{flex-direction:column;align-items:center;gap:6px}
+.breath .grp-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center}
+.breath .choices .grp{align-self:center;padding:0 4px 0 0;min-width:6.5em;text-align:right;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-dim);margin-top:2px}
 .help{width:100%;max-width:28rem;text-align:left;font-size:.86rem;line-height:1.5;color:var(--ink-dim);border:1px solid var(--line);border-radius:14px;background:var(--glass)}
 .help summary{cursor:pointer;padding:10px 14px;color:var(--ink);font-weight:500;list-style:none;text-align:center}
 .help summary::-webkit-details-marker{display:none}

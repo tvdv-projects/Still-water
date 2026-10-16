@@ -74,6 +74,7 @@ function createEngine() {
   const next = { pulse: 0, crackle: 0 };
   let styleName = 'glacial', S = STYLES.glacial;
   let unlockEl = null, faunaNext = {};
+  let carrierHz = null; // Vrij: a chosen carrier pitch instead of the style's
 
   function init() {
     ac = new (window.AudioContext || window.webkitAudioContext)();
@@ -162,7 +163,7 @@ function createEngine() {
     S = STYLES[name];
     faunaNext = {};
     if (!ac) return;
-    setCarrier(st(S.carrier ?? 12), force || !on);
+    setCarrier(carrierHz ?? st(S.carrier ?? 12), force || !on);
     ambient.setStyle(S);
     groove.setStyle(S);
     applyMix();
@@ -213,6 +214,11 @@ function createEngine() {
     setStyle,
     setBeat(hz) { beatTarget = hz; },
     setBin(v) { binOn = v; if (ac) updateBeat(1.5); },
+    /** Carrier pitch of the binaural tone in Hz, or null for the music style's own. */
+    setCarrierHz(hz) {
+      carrierHz = hz ?? null;
+      if (ac) setCarrier(carrierHz ?? st(S.carrier ?? 12), !on);
+    },
     /** Tempo of the focus and energy music: fixed (false) or following the heart rate (true). */
     setTempoFollow(v) { follow = !!v; if (groove) groove.setFollow(follow); },
 

@@ -42,6 +42,14 @@ export function updateHud(dt) {
   if (app.state === 'calib') {
     d.textContent = `meten… ${Math.max(0, Math.ceil(CALIB_SECONDS - t))} s`;
     d.className = 'delta';
+  } else if (app.state === 'session' && P.free) {
+    if (app.source === 'none') d.textContent = '';
+    else if (app.baseline == null || app.hrS == null) d.textContent = app.hrS == null ? '' : 'begin meten…';
+    else {
+      const df = app.hrS - app.baseline;
+      d.textContent = `${df <= 0 ? '−' : '+'}${nl(Math.abs(df))} t.o.v. begin`;
+    }
+    d.className = 'delta';
   } else if (app.state === 'session' && app.hrS != null) {
     if (P.goal === 'rise') {
       const rise = app.hrS - app.baseline, [lo, hi] = P.band;
@@ -66,7 +74,10 @@ export function updateHud(dt) {
     hrv.textContent = parts.join(' · ');
   }
 
-  if (app.state === 'session') {
+  if (app.state === 'session' && P.free) {
+    const mmss = (x) => `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}`;
+    $('timer').textContent = (app.durMin > 0 ? mmss(Math.max(0, app.durMin * 60 - t)) : mmss(t)) + ' · Vrij' + hz();
+  } else if (app.state === 'session') {
     const left = Math.max(0, CALIB_SECONDS + app.durMin * 60 - t);
     $('timer').textContent = `${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, '0')} · ${app.litCount}/${STEPS} · ${P.name}` + hz();
   } else if (app.state === 'calib') $('timer').textContent = `Rustmeting · ${P.name}` + hz();
