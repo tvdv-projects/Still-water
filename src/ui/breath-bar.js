@@ -11,9 +11,12 @@ import { msg } from './messages.js';
 
 const prefKey = () => 'breath.' + app.profKey;
 
+/** The techniques on offer: "Jouw tempo" (after the resonance test) first, then the profile's own. */
+const offered = () => (BREATHS.mine ? ['mine', ...profile().breaths] : profile().breaths);
+
 function preferred() {
   const k = store.get(prefKey(), null);
-  return profile().breaths.includes(k) ? k : profile().breaths[0];
+  return offered().includes(k) ? k : offered()[0];
 }
 
 /** Start a technique and show its instruction the first time it is used. */
@@ -26,7 +29,10 @@ export function buildChips() {
   box.innerHTML = '';
   const selected = breath.pending || breath.key || preferred();
   // Vrij offers every technique, grouped; the profiles offer their own three.
-  const groups = profile().free ? BREATH_GROUPS : [{ name: null, keys: profile().breaths }];
+  const mine = BREATHS.mine ? ['mine'] : [];
+  const groups = profile().free
+    ? BREATH_GROUPS.map((g, i) => (i === 0 ? { ...g, keys: [...mine, ...g.keys] } : g))
+    : [{ name: null, keys: offered() }];
   box.classList.toggle('grouped', !!profile().free);
   if (profile().free && innerWidth < 600) {
     // Small screens: thirteen buttons would bury the guide, so one grouped dropdown instead.
@@ -36,7 +42,7 @@ export function buildChips() {
     for (const g of BREATH_GROUPS) {
       const og = document.createElement('optgroup');
       og.label = g.name;
-      g.keys.forEach((k) => og.append(new Option(breathLabel(k), k, false, k === selected)));
+      (g.name === BREATH_GROUPS[0].name ? [...mine, ...g.keys] : g.keys).forEach((k) => og.append(new Option(k === 'mine' ? BREATHS.mine.name : breathLabel(k), k, false, k === selected)));
       sel.append(og);
     }
     sel.addEventListener('change', () => {
@@ -61,7 +67,7 @@ export function buildChips() {
     for (const key of g.keys) {
       const b = document.createElement('button');
       b.type = 'button';
-      b.textContent = profile().free ? breathLabel(key) : BREATHS[key].name;
+      b.textContent = key === 'mine' || !profile().free ? BREATHS[key].name : breathLabel(key);
       b.dataset.k = key;
       b.setAttribute('aria-pressed', String(key === selected));
       b.addEventListener('click', () => {

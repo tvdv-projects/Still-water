@@ -75,6 +75,7 @@ function createEngine() {
   let styleName = 'glacial', S = STYLES.glacial;
   let unlockEl = null, faunaNext = {};
   let carrierHz = null; // Vrij: a chosen carrier pitch instead of the style's
+  let outGain, eyesOn = false, mutedOn = false; // final output (mute), Ogen dicht
 
   function init() {
     ac = new (window.AudioContext || window.webkitAudioContext)();
@@ -83,7 +84,8 @@ function createEngine() {
     const comp = ac.createDynamicsCompressor();
     comp.threshold.value = -18;
     comp.ratio.value = 3;
-    master.connect(comp).connect(ac.destination);
+    outGain = ac.createGain();
+    master.connect(comp).connect(outGain).connect(ac.destination);
     musicBus = ac.createGain(); natureBus = ac.createGain(); pulseBus = ac.createGain(); breathBus = ac.createGain();
     // Soft tape saturation on the music: rounds off peaks and adds a little warmth.
     const tape = ac.createWaveShaper(); tape.curve = saturationCurve(1.6); tape.oversample = '2x';
@@ -138,7 +140,7 @@ function createEngine() {
     musicBus.gain.setTargetAtTime(mix.music * 1.25, n, 0.2);
     natureBus.gain.setTargetAtTime(mix.nature * 3 * S.nature, n, 0.2);
     pulseBus.gain.setTargetAtTime(mix.pulse * 1.6, n, 0.2);
-    breathBus.gain.setTargetAtTime(mix.breath * 1.5, n, 0.2);
+    breathBus.gain.setTargetAtTime(mix.breath * (eyesOn ? 2.4 : 1.5), n, 0.2);
   }
 
   const carrierLevel = () => (binOn && on && !carPending ? 0.04 : 0);
@@ -214,6 +216,19 @@ function createEngine() {
     setStyle,
     setBeat(hz) { beatTarget = hz; },
     setBin(v) { binOn = v; if (ac) updateBeat(1.5); },
+    /** Ogen dicht: a clearer breath sound (the bells come from cue()). */
+    setEyes(v) { eyesOn = !!v; applyMix(); },
+    setMuted(v) {
+      mutedOn = !!v;
+      if (outGain) outGain.gain.setTargetAtTime(mutedOn ? 0 : 1, ac.currentTime, 0.15);
+    },
+    get muted() { return mutedOn; },
+    /** A soft bell when the breath turns: 'in' a fifth higher than 'out'. */
+    cue(kind) {
+      if (!ac || !on) return;
+      const f = kind === 'in' ? st(36 + 7 + 12) : st(36 + 7);
+      ambient.bell(f, 0.03);
+    },
     /** Carrier pitch of the binaural tone in Hz, or null for the music style's own. */
     setCarrierHz(hz) {
       carrierHz = hz ?? null;

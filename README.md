@@ -24,6 +24,11 @@ Een rustgevende wereld die reageert op je hartslag. Kies een profiel (slaap, ont
 - **Ademhalingsoefeningen**, drie per profiel, met een visuele gids en ademgeluid. Ze staan standaard uit en kunnen tijdens de sessie wisselen.
 - **Live HRV en coherentie** met een borstband (bijvoorbeeld Garmin HRM 200): de tijd tussen hartslagen geeft je HRV, en tijdens de ademhalingsoefeningen zie je hoe sterk je hart je ademhaling volgt.
 - **Beeldeffecten** onder het menu **Beeld**: tien hypnotiserende effecten die je los aan- en uitzet, zoals hartslag-rimpels, een scène die meeademt, noorderlicht en een coherentie-mandala. Ze bewegen traag op je adem of hartslag en flitsen nooit. Je keuze wordt onthouden.
+- **Je eigen ademtempo**: een resonantietest (6 of 12 minuten, borstband nodig) die meet bij welk ademtempo je hartslag het sterkst meegolft. Dat tempo staat daarna als *Jouw tempo* bij de ademhaling in elk profiel.
+- **Live hartgolf**: met borstband en ademgids zie je je hartslag per slag meegolven met je ademhaling.
+- **Ogen dicht**: een zacht klokje bij elke in- en uitademing en een gedimd scherm, zodat je niet hoeft te kijken.
+- **Mini-venster** (Chrome en Edge op de laptop): de scène en de ademgids in een klein zwevend venster boven je werk.
+- **Rustig scherm**: tijdens een sessie verdwijnen de knoppen na 5 seconden zonder muis; sneltoetsen: spatie (ademhaling), O (ogen dicht), M (dempen), F (volledig scherm).
 - **Slaapstand** na een Slaap-sessie: het scherm wordt zwart en het geluid sterft in 15 minuten weg. Tik om wakker te worden.
 - **Testmodus** met een gesimuleerde hartslag (inclusief borstband-data), zodat je alles zonder horloge kunt proberen.
 

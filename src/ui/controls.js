@@ -1,5 +1,5 @@
 // Wires up every button: profile and duration on the intro card, connect / test,
-// stop (two taps), the sound panel and the binaural toggle.
+// stop (two taps), and the Instellingen panel (sound, effects, view).
 
 import { track } from '../analytics.js';
 import { audio } from '../audio/engine.js';
@@ -7,6 +7,7 @@ import { store } from '../core/storage.js';
 import { connectHeartRate } from '../heart-rate/bluetooth.js';
 import { startSimulator } from '../heart-rate/simulator.js';
 import { resetScenes } from '../render/frame.js';
+import { abortReso } from '../resonance-test.js';
 import { begin, finish, toIntro, wake } from '../session.js';
 import { bandName, LOOKS, MUSIC } from '../config/free.js';
 import { app, profile, setFree } from '../state.js';
@@ -134,6 +135,7 @@ function initStop() {
     }
     armed = 0;
     $('stop').textContent = 'Stop';
+    if (app.state === 'reso') return abortReso();
     if (app.state === 'session' && (profile().free || app.samples.some((s) => s.t > CALIB_SECONDS))) finish(true);
     else { track(`einde/${app.profKey}/gestopt-tijdens-rustmeting`); audio.fade(0, 3); toIntro(); }
   });
@@ -169,20 +171,7 @@ function initSoundPanel() {
     audio.setTempoFollow(tempoHr);
     setTempoButton(tempoHr);
   });
-  $('snd').addEventListener('click', (e) => {
-    const panel = $('mix');
-    panel.hidden = !panel.hidden;
-    e.currentTarget.setAttribute('aria-expanded', String(!panel.hidden));
-    if (!panel.hidden) closePanel('fxPanel', 'vis');
-    if (!audio.on && app.state !== 'intro') audio.start();
-  });
   initFxMenu();
-  $('vis').addEventListener('click', (e) => {
-    const panel = $('fxPanel');
-    panel.hidden = !panel.hidden;
-    e.currentTarget.setAttribute('aria-expanded', String(!panel.hidden));
-    if (!panel.hidden) { refreshFxMenu(); closePanel('mix', 'snd'); }
-  });
   const sliders = { vMusic: 'music', vNature: 'nature', vPulse: 'pulse', vBreath: 'breath' };
   const saved = store.get('mix', {});
   for (const [id, key] of Object.entries(sliders)) {
@@ -197,14 +186,34 @@ function initSoundPanel() {
   }
   $('c').addEventListener('pointerdown', () => {
     if (app.state === 'sleeping') wake();
-    closePanel('mix', 'snd');
-    closePanel('fxPanel', 'vis');
+    closeSettings();
   });
 }
 
-function closePanel(id, buttonId) {
-  $(id).hidden = true;
-  $(buttonId).setAttribute('aria-expanded', 'false');
+// ---------- the Instellingen panel: one panel, three tabs ----------
+
+function closeSettings() {
+  $('settings').hidden = true;
+  $('set').setAttribute('aria-expanded', 'false');
+}
+
+function showTab(name) {
+  $$('#settings [role=tab]').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === name)));
+  $$('#settings [data-pane]').forEach((p) => (p.hidden = p.dataset.pane !== name));
+  if (name === 'look') refreshFxMenu();
+  store.set('tab', name);
+}
+
+function initSettings() {
+  $('set').addEventListener('click', (e) => {
+    const panel = $('settings');
+    panel.hidden = !panel.hidden;
+    e.currentTarget.setAttribute('aria-expanded', String(!panel.hidden));
+    if (!panel.hidden) showTab(store.get('tab', 'sound'));
+    if (!audio.on && app.state !== 'intro') audio.start();
+  });
+  $$('#settings [role=tab]').forEach((t) => t.addEventListener('click', () => showTab(t.dataset.tab)));
+  addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSettings(); });
 }
 
 function initAudioLifecycle() {
@@ -222,5 +231,6 @@ export function initControls() {
   initIntro();
   initStop();
   initSoundPanel();
+  initSettings();
   initAudioLifecycle();
 }

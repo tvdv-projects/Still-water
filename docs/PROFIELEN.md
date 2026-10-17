@@ -100,6 +100,9 @@ Gedefinieerd in `src/config/breathing.js`. Ze staan standaard uit; zet ze aan me
 
 Over de vuurademhaling: het is een lichte versie met korte rondes en rustpauzes, zonder adem inhouden. Bij de eerste keer verschijnt een waarschuwing: doe het zittend, nooit in water of tijdens het rijden, en stop als je duizelig wordt. Na drie rondes meldt het spel dat je klaar bent; je kunt daarna rustig verder ademen of nog een keer beginnen. Echte hyperventilatie-technieken zoals Wim Hof zitten er bewust niet in.
 
+### Jouw tempo
+Na de resonantietest staat *Jouw tempo* als eerste oefening in elk profiel: jouw persoonlijke resonantietempo, met 40 % inademen en 60 % uitademen. Op dat tempo golft je hartslag het sterkst mee; daar is HRV-biofeedback in het onderzoek het meest op gebaseerd.
+
 ### Visuele gids
 
 - **Ring:** groeit bij inademen, blijft bij vasthouden, krimpt bij uitademen. In het midden staat de countdown, erboven de fase.

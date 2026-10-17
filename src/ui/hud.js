@@ -4,7 +4,7 @@ import { audio } from '../audio/engine.js';
 import { CALIB_SECONDS, STEPS } from '../core/scoring.js';
 import { store } from '../core/storage.js';
 import { TAU } from '../core/math.js';
-import { app, profile, sessionClock } from '../state.js';
+import { app, breath, profile, sessionClock } from '../state.js';
 import { $, nl } from './dom.js';
 
 const spark = $('spark');
@@ -13,8 +13,7 @@ let showNumbers = !store.get('hideNums', false);
 let acc = 0;
 
 function applyNumbers() {
-  $('nums').textContent = showNumbers ? 'Cijfers uit' : 'Cijfers aan';
-  $('nums').setAttribute('aria-pressed', String(!showNumbers));
+  $('nums').setAttribute('aria-checked', String(showNumbers));
   $('readout').style.visibility = showNumbers ? 'visible' : 'hidden';
   $('timer').style.visibility = showNumbers ? 'visible' : 'hidden';
 }
@@ -41,6 +40,9 @@ export function updateHud(dt) {
   const d = $('delta');
   if (app.state === 'calib') {
     d.textContent = `meten… ${Math.max(0, Math.ceil(CALIB_SECONDS - t))} s`;
+    d.className = 'delta';
+  } else if (app.state === 'reso') {
+    d.textContent = 'resonantietest';
     d.className = 'delta';
   } else if (app.state === 'session' && P.free) {
     if (app.source === 'none') d.textContent = '';
@@ -74,7 +76,9 @@ export function updateHud(dt) {
     hrv.textContent = parts.join(' · ');
   }
 
-  if (app.state === 'session' && P.free) {
+  if (app.state === 'reso') {
+    $('timer').textContent = app.resoLabel || '';
+  } else if (app.state === 'session' && P.free) {
     const mmss = (x) => `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}`;
     $('timer').textContent = (app.durMin > 0 ? mmss(Math.max(0, app.durMin * 60 - t)) : mmss(t)) + ' · Vrij' + hz();
   } else if (app.state === 'session') {
@@ -87,7 +91,58 @@ export function updateHud(dt) {
 }
 
 /** Last three minutes of heart rate, with the starting rate as a dashed line. */
+/**
+ * With a chest strap and the breathing guide on: the heart rate beat by beat over the last 30 s,
+ * with the breathing as a soft band behind it, so you can see your heart rise and fall with your
+ * breath (the actual biofeedback). Otherwise: the trend of the last three minutes.
+ */
+const WAVE_SECONDS = 30;
+export function waveMode() {
+  if (!app.hasRR || !breath.on || !breath.key || app.state === 'intro') return false;
+  const t = sessionClock();
+  return app.beats.filter((b) => b.t > t - WAVE_SECONDS).length >= 8;
+}
+
+/** Called every frame: the live wave scrolls smoothly; the trend only updates with the HUD. */
+export function updateWave() {
+  const on = waveMode();
+  $('readout').classList.toggle('wave', on);
+  if (on) drawWave(sessionClock());
+}
+
+function drawWave(t) {
+  const w = spark.width, h = spark.height, t0 = t - WAVE_SECONDS;
+  sctx.clearRect(0, 0, w, h);
+  const X = (tt) => ((tt - t0) / WAVE_SECONDS) * w;
+  // Breathing: a soft band, full = top.
+  const br = app.breathLog.filter((b) => b.t > t0);
+  if (br.length > 1) {
+    sctx.fillStyle = 'rgba(236,228,214,.12)';
+    sctx.beginPath(); sctx.moveTo(X(br[0].t), h);
+    br.forEach((b) => sctx.lineTo(X(b.t), h - 4 - b.v * (h - 14)));
+    sctx.lineTo(X(br[br.length - 1].t), h); sctx.closePath(); sctx.fill();
+  }
+  // Heart rate per beat, smoothed into a curve.
+  const beats = app.beats.filter((b) => b.t > t0 - 2);
+  const vals = beats.map((b) => b.v);
+  const lo = Math.min(...vals) - 1.5, hi = Math.max(...vals) + 1.5;
+  const Y = (v) => h - 6 - ((v - lo) / (hi - lo)) * (h - 16);
+  sctx.strokeStyle = '#9fd6c2'; sctx.lineWidth = 3; sctx.lineJoin = 'round'; sctx.lineCap = 'round';
+  sctx.beginPath();
+  beats.forEach((b, i) => {
+    const x = X(b.t), y = Y(b.v);
+    if (!i) return sctx.moveTo(x, y);
+    const p = beats[i - 1], mx = (X(p.t) + x) / 2;
+    sctx.bezierCurveTo(mx, Y(p.v), mx, y, x, y);
+  });
+  sctx.stroke();
+  sctx.font = '500 15px system-ui, sans-serif';
+  sctx.fillStyle = '#9fd6c2'; sctx.fillText('hart', 4, 15);
+  sctx.fillStyle = 'rgba(236,228,214,.55)'; sctx.fillText('adem', 46, 15);
+}
+
 function drawSparkline(t) {
+  if (waveMode()) return; // drawn every frame by updateWave
   const w = spark.width, h = spark.height;
   sctx.clearRect(0, 0, w, h);
   const recent = app.samples.filter((s) => s.t > t - 180);

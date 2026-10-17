@@ -1,5 +1,6 @@
 // Test mode: a simulated heart rate, either drifting down automatically or set with a slider.
 
+import { cycleSeconds } from '../config/breathing.js';
 import { app, breath, profile, recordRR, recordSample } from '../state.js';
 import { $ } from '../ui/dom.js';
 import { setStatus } from '../ui/status.js';
@@ -22,7 +23,10 @@ function tick() {
   const rr = [], beats = Math.max(1, Math.round(hr / 60));
   for (let k = 0; k < beats; k++) {
     const sec = performance.now() / 1000 + k / beats;
-    const rsa = breath.on && breath.key ? 6 * (breath.level - 0.5) : 1.5 * Math.sin(sec * 1.25);
+    // The swing is strongest near 5.5 breaths a minute (a typical resonance rate), as in real people.
+    const rate = breath.on && breath.key ? 60 / cycleSeconds(breath.key) : 0;
+    const amp = 2.5 + 6 * Math.exp(-(((rate - 5.5) / 1) ** 2));
+    const rsa = breath.on && breath.key ? amp * (breath.level - 0.5) * 2 : 1.5 * Math.sin(sec * 1.25);
     rr.push(Math.round(60000 / (hr + rsa + (Math.random() - 0.5) * 1.2)));
   }
   recordRR(rr);

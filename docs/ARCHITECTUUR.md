@@ -16,6 +16,7 @@ src/
   analytics.js          anonieme gebruikstelling (GoatCounter-events)
   state.js              gedeelde app-state, ademhalingsstate, hartslagmetingen
   session.js            sessieverloop: rustmeting → sessie → overzicht
+  resonance-test.js     resonantietest: uitleg, zes tempo's, uitslag, 'Jouw tempo'
   config/
     profiles.js         de profielen (scène, stijl, doel, binaural, oefeningen, teksten)
     free.js             Vrij: keuzes, en een profiel-object gebouwd uit de instellingen
@@ -25,6 +26,7 @@ src/
     math.js             clamp, lerp, easing, kleurhulpjes
     scoring.js          hartslag → rust, voortgang, binaural-tempo; samenvatting
     hrv.js              RR-intervallen: filteren, RMSSD, coherentie met de ademgids
+    resonance.js        resonantietest: tempo's, schema's, slag-uitslag per ademhaling, beste tempo
     breathing.js        toestandsmachine van de ademgids
     storage.js          localStorage met fallback
   heart-rate/
@@ -45,7 +47,8 @@ src/
     breath-overlay.js   visuele ademgids (ring, vierkant, wisselende neusgaten)
     effects.js          optionele beeldeffecten (menu Beeld)
     scenes/             lake.js, dawn.js, candle.js, campfire.js, morning.js (foto + WebGL)
-  ui/                   knoppen, HUD, meldingen, ademhalingsbalk, menu Beeld (fx-menu.js)
+  ui/                   knoppen, HUD (met live hartgolf), meldingen, ademhalingsbalk, effecten (fx-menu.js),
+                        view.js (vanzelf verbergen, ogen dicht, sneltoetsen), mini.js (mini-venster)
   styles/main.css
 assets/ochtend.jpg      foto voor Ochtend (sRGB, 4032 × 3024, lensreflectie weggeretoucheerd)
 tests/                  unit tests (node --test)
@@ -69,6 +72,18 @@ flowchart LR
 ```
 
 `main.js` draait één `requestAnimationFrame`-lus die in vaste volgorde de sessie bijwerkt, de ademgids een stap verder zet, het beeld tekent, de HUD bijwerkt en de audio-parameters aanpast.
+
+## Scherm en bediening
+
+- **Instellingen:** één paneel met drie tabbladen (Geluid, Beeld, Weergave) achter één knop in de kop. De kop toont verder alleen Stop en, op de laptop, Mini.
+- **Vanzelf verbergen** (`ui/view.js`): tijdens een sessie of test krijgt `body` na 5 seconden zonder muis, toets of aanraking de klasse `idle`; kop, cijfers en ademhalingsknoppen vervagen dan. Niet als het paneel open is, de muis boven een knop staat of een keuzelijst focus heeft.
+- **Ogen dicht:** `updateCues()` kijkt elk frame of de ademgids van richting wisselt (in ↔ uit) en laat dan `audio.cue()` een klokje spelen; vasthouden blijft stil, de snelle pompjes van de vuurademhaling krijgen er geen. Het ademgeluid gaat iets omhoog en het canvas wordt gedimd met een CSS-filter.
+- **Live hartgolf** (`ui/hud.js`): met RR-data en de ademgids aan tekent het grafiekje elk frame de hartslag per slag over 30 seconden, met het ademniveau als band erachter.
+- **Mini-venster** (`ui/mini.js`): via Document Picture-in-Picture verhuist het canvas naar een zwevend venster. De animatielus vraagt zijn frames aan bij het venster waar het canvas in staat (`canvasWindow()`), zodat hij doorloopt als de pagina achter andere programma's ligt; de tijd komt altijd van de klok van de pagina, omdat elk venster een eigen tijdsoorsprong heeft. Bij sluiten gaat het canvas terug en start de lus opnieuw.
+
+## Resonantietest
+
+`core/resonance.js` (getest) en `resonance-test.js`. Zes tempo's (7 → 4,5 per minuut), kort (1 minuut per tempo) of grondig (2 minuten, zoals in de onderzoeksprotocollen van Lehrer en Gevirtz). Per tempo wordt de ademgids een techniek met 40 % inademen en 60 % uitademen. Na een inlooptijd (15 of 20 seconden) wordt het venster in stukken van één ademhaling geknipt; per stuk telt het verschil tussen de hoogste en laagste hartslag, en de mediaan daarvan is de uitslag voor dat tempo. Het tempo met de grootste uitslag wint. Zonder RR-data na 25 seconden (een horloge) stopt de test met uitleg. Het gekozen tempo is één instelling (`stilwater.resoRate`), geen geschiedenis, en wordt de techniek `mine` ("Jouw tempo") vooraan in elke ademhalingsbalk.
 
 ## Vrij
 

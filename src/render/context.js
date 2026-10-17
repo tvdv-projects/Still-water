@@ -5,15 +5,19 @@ import { TAU } from '../core/math.js';
 export const canvas = document.getElementById('c');
 export const ctx = canvas.getContext('2d');
 
-/** Current CSS-pixel size of the canvas; updated on resize, read every frame. */
-export const view = { W: 0, H: 0, DPR: 1 };
+/** Current CSS-pixel size of the canvas; updated on resize, read every frame. mini = in the mini window. */
+export const view = { W: 0, H: 0, DPR: 1, mini: false };
+
+/** The window the canvas currently lives in: the page, or the mini window (Picture-in-Picture). */
+export const canvasWindow = () => canvas.ownerDocument.defaultView || window;
 
 export const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export function resize() {
-  view.DPR = Math.min(window.devicePixelRatio || 1, 2);
-  view.W = innerWidth;
-  view.H = innerHeight;
+  const w = canvasWindow();
+  view.DPR = Math.min(w.devicePixelRatio || 1, 2);
+  view.W = w.innerWidth;
+  view.H = w.innerHeight;
   canvas.width = Math.round(view.W * view.DPR);
   canvas.height = Math.round(view.H * view.DPR);
   ctx.setTransform(view.DPR, 0, 0, view.DPR, 0, 0);

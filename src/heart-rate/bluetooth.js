@@ -58,8 +58,8 @@ async function attach(device) {
 }
 
 /** Ask the user to pick a heart-rate device and start listening. Calls `onConnected(name)` on success. */
-export async function connectHeartRate(onConnected) {
-  const note = $('connNote');
+export async function connectHeartRate(onConnected, noteId = 'connNote') {
+  const note = $(noteId);
   if (!navigator.bluetooth) {
     note.innerHTML = '<span class="err">Deze browser kan geen bluetooth gebruiken.</span> Open deze pagina in Chrome op een laptop of Android, of in Bluefy op de iPhone. Je kunt ook de testmodus proberen.';
     return;

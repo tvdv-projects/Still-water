@@ -29,7 +29,10 @@ export function progressStep(i) {
 // above the ring and the coherence line below it; when space is tight the ring shrinks.
 let bandTop = 0, bandBottom = Infinity, layoutCheck = 0;
 function fitGuide([cx, cy, R]) {
-  if (--layoutCheck <= 0) {
+  if (view.mini) {
+    // Mini window: no message band or controls, just the scene; the guide uses the whole height.
+    bandTop = 4; bandBottom = view.H - 4; layoutCheck = 0;
+  } else if (--layoutCheck <= 0) {
     layoutCheck = 30;
     const msgEl = document.getElementById('msg'), bar = document.getElementById('breathBar');
     bandTop = msgEl ? msgEl.getBoundingClientRect().top + 84 : 0; // room for up to three lines of message
